@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { NAV_LINKS } from '../config/demoUsers';
+import logoImg from '../assets/logo.png';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -29,7 +30,7 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-inner">
         <Link to="/" className="logo">
-          <span className="logo-mark">S</span>
+          <img src={logoImg} alt="Sokviek Logo" className="logo-img" />
           Sokviek
         </Link>
 

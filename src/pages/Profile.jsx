@@ -46,6 +46,14 @@ export default function Profile() {
   const [applicants, setApplicants] = useState([]);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [selectedApplicantForDetail, setSelectedApplicantForDetail] = useState(null);
+  const [editingJobId, setEditingJobId] = useState(null);
+  const [activeDropdownJobId, setActiveDropdownJobId] = useState(null);
+
+  useEffect(() => {
+    const handleClose = () => setActiveDropdownJobId(null);
+    document.addEventListener('click', handleClose);
+    return () => document.removeEventListener('click', handleClose);
+  }, []);
 
   useEffect(() => {
     if (user?.profile) {
@@ -98,6 +106,22 @@ export default function Profile() {
   }, [location.state, user]);
 
   const openJobForm = () => {
+    setEditingJobId(null);
+    setJobForm({ title: '', description: '', salary: '', location: '', requirements: '', type: 'full-time' });
+    setShowJobForm(true);
+    document.getElementById('company-jobs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleEditClick = (job) => {
+    setEditingJobId(job.id);
+    setJobForm({
+      title: job.title || '',
+      description: job.description || '',
+      salary: job.salary || '',
+      location: job.location || '',
+      requirements: job.requirements || '',
+      type: job.type || 'full-time',
+    });
     setShowJobForm(true);
     document.getElementById('company-jobs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -107,13 +131,19 @@ export default function Profile() {
     setJobError('');
     setJobLoading(true);
     try {
-      await api.postJob(jobForm);
+      if (editingJobId) {
+        await api.updateJob(editingJobId, jobForm);
+        setJobMessage('ແກ້ໄຂປະກາດງານສຳເລັດ');
+      } else {
+        await api.postJob(jobForm);
+        setJobMessage('ປະກາດງານສຳເລັດ');
+      }
       setJobForm({ title: '', description: '', salary: '', location: '', requirements: '', type: 'full-time' });
+      setEditingJobId(null);
       setShowJobForm(false);
       const data = await api.getJobs();
       const mine = user.role === 'admin' ? data.jobs : data.jobs.filter((j) => j.companyId === user.id);
       setMyJobs(mine);
-      setJobMessage('ປະກາດງານສຳເລັດ');
       setTimeout(() => setJobMessage(''), 3000);
     } catch (err) {
       setJobError(err.message);
@@ -330,6 +360,10 @@ export default function Profile() {
             <label>ເບີໂທ</label>
             <input value={form.phone || ''} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           </div>
+          <div className="form-group">
+            <label>ກ່ຽວກັບບໍລິສັດ</label>
+            <textarea value={form.about || ''} onChange={(e) => setForm({ ...form, about: e.target.value })} rows={3} placeholder="ບອກເລົ່າກ່ຽວກັບບໍລິສັດຂອງທ່ານ..." />
+          </div>
           <div className="profile-actions">
             <button type="submit" className="btn btn-primary" disabled={loading}>ບັນທຶກ</button>
             <button type="button" className="btn btn-outline" onClick={() => { setEditing(false); setForm({ ...user.profile }); }}>ຍົກເລີກ</button>
@@ -342,6 +376,7 @@ export default function Profile() {
             <dt>Gmail</dt><dd>{user.profile?.companyEmail || '-'}</dd>
             <dt>ທີ່ຢູ່</dt><dd>{user.profile?.address || '-'}</dd>
             <dt>ເບີໂທ</dt><dd>{user.profile?.phone || '-'}</dd>
+            <dt>ກ່ຽວກັບບໍລິສັດ</dt><dd>{user.profile?.about || '-'}</dd>
           </dl>
         </div>
       )}
@@ -585,7 +620,7 @@ export default function Profile() {
         {user.role === 'company' && (
           <div className="box resume-profile-card" id="company-jobs">
             <div className="box-results-header">
-              <h2 className="box-title">ວຽກທີ່ປະກາດของຂ້ອຍ</h2>
+              <h2 className="box-title">ວຽກທີ່ປະກາດ</h2>
             </div>
 
             {jobMessage && <div className="alert alert-success">{jobMessage}</div>}
@@ -593,6 +628,9 @@ export default function Profile() {
 
             {showJobForm && (
               <form onSubmit={handlePostJob} className="profile-job-form">
+                <h3 className="form-title" style={{ marginBottom: '1rem', fontWeight: 600, fontSize: '1.125rem' }}>
+                  {editingJobId ? 'ແກ້ໄຂປະກາດງານ' : 'ປະກາດງານໃໝ່'}
+                </h3>
                 <div className="form-group">
                   <label>ຊື່ວຽກ *</label>
                   <input value={jobForm.title} onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })} required />
@@ -624,14 +662,26 @@ export default function Profile() {
                   <textarea value={jobForm.requirements} onChange={(e) => setJobForm({ ...jobForm, requirements: e.target.value })} rows={2} />
                 </div>
                 <div className="profile-actions">
-                  <button type="submit" className="btn btn-primary" disabled={jobLoading}>ປະກາດງານ</button>
-                  <button type="button" className="btn btn-outline" onClick={() => setShowJobForm(false)}>ຍົກເລີກ</button>
+                  <button type="submit" className="btn btn-primary" disabled={jobLoading}>
+                    {editingJobId ? 'ບັນທຶກການແກ້ໄຂ' : 'ປະກາດງານ'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => {
+                      setShowJobForm(false);
+                      setEditingJobId(null);
+                      setJobForm({ title: '', description: '', salary: '', location: '', requirements: '', type: 'full-time' });
+                    }}
+                  >
+                    ຍົກເລີກ
+                  </button>
                 </div>
               </form>
             )}
 
             {myJobs.length === 0 ? (
-              <p className="empty-text">ຍັງບໍ່ມີວຽກທີ່ປະກາດ — ກົດປຸ່ມ "ປະກາດງານໃໝ່"</p>
+              <p className="empty-text"></p>
             ) : (
               <ul className="my-posts-list">
                 {myJobs.map((job) => (
@@ -640,9 +690,52 @@ export default function Profile() {
                       <strong>{job.title}</strong>
                       <span>{JOB_TYPES[job.type]} · {job.location}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button type="button" className="btn btn-outline btn-sm" onClick={() => handleViewApplicants(job)}>ເບິ່ງຜູ້ສະໝັກ</button>
-                      <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDeleteJob(job.id)}>ລຶບ</button>
+                    <div className="job-actions-dropdown">
+                      <button
+                        type="button"
+                        className="dots-toggle-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDropdownJobId(activeDropdownJobId === job.id ? null : job.id);
+                        }}
+                        aria-label="Actions"
+                      >
+                        ⋮
+                      </button>
+                      {activeDropdownJobId === job.id && (
+                        <div className="actions-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className="dropdown-menu-item"
+                            onClick={() => {
+                              handleViewApplicants(job);
+                              setActiveDropdownJobId(null);
+                            }}
+                          >
+                            ເບິ່ງຜູ້ສະໝັກ
+                          </button>
+                          <button
+                            type="button"
+                            className="dropdown-menu-item"
+                            onClick={() => {
+                              handleEditClick(job);
+                              setActiveDropdownJobId(null);
+                            }}
+                          >
+                            ແກ້ໄຂ
+                          </button>
+                          <button
+                            type="button"
+                            className="dropdown-menu-item delete-item"
+                            onClick={() => {
+                              handleDeleteJob(job.id);
+                              setActiveDropdownJobId(null);
+                            }}
+                          >
+                            ລຶບ
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </li>
                 ))}

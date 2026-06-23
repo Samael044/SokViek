@@ -104,6 +104,7 @@ export default function Feed({ mode, title, desc, empty }) {
                 {job.requirements && <><dt>ຄຸນສົມບັດ</dt><dd>{job.requirements}</dd></>}
                 <dt>ວັນທີປະກາດ</dt>
                 <dd>{new Date(job.createdAt).toLocaleDateString('lo-LA')}</dd>
+                {job.company?.about && <><dt>ກ່ຽວກັບບໍລິສັດ</dt><dd>{job.company.about}</dd></>}
             </dl>
             {user?.role === 'employees' && (
                 <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
@@ -164,10 +165,10 @@ export default function Feed({ mode, title, desc, empty }) {
                     <strong style={{ display: 'block', fontSize: '0.9375rem', marginBottom: '0.5rem', color: 'var(--text)' }}>ຮູບພາບ Resume / CV:</strong>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         {item.resume.resumeImages.map((img, idx) => (
-                            <a 
-                                key={idx} 
-                                href={img} 
-                                target="_blank" 
+                            <a
+                                key={idx}
+                                href={img}
+                                target="_blank"
                                 rel="noreferrer"
                                 style={{
                                     display: 'block',
@@ -191,10 +192,10 @@ export default function Feed({ mode, title, desc, empty }) {
                                     e.currentTarget.style.borderColor = 'var(--border-strong)';
                                 }}
                             >
-                                <img 
-                                    src={img} 
-                                    alt={`Resume / CV ${idx + 1}`} 
-                                    style={{ width: '100%', height: 'auto', display: 'block' }} 
+                                <img
+                                    src={img}
+                                    alt={`Resume / CV ${idx + 1}`}
+                                    style={{ width: '100%', height: 'auto', display: 'block' }}
                                 />
                             </a>
                         ))}
@@ -216,7 +217,7 @@ export default function Feed({ mode, title, desc, empty }) {
                     )}
                 </div>
             ) : user?.role === 'employees' ? (
-                <p className="board-hint">ຂໍ້ມູນຕິດຕໍ່ສຳລັບບໍລິສັດເທົ່ານັ້ນ</p>
+                <p className="board-hint"></p>
             ) : null}
         </>
     );

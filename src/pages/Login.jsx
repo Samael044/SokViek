@@ -55,13 +55,13 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="login">Gmail / ເບີໂທລະສັບ</label>
+            <label htmlFor="login">Gmail</label>
             <input
               id="login"
               type="text"
               value={login}
               onChange={(e) => setLogin(e.target.value)}
-              placeholder="example@gmail.com ຫຼື 0812345678"
+              placeholder=""
               required
             />
           </div>

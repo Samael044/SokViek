@@ -58,6 +58,7 @@ export default function Home() {
         {job.requirements && <><dt>ຄຸນສົມບັດ</dt><dd>{job.requirements}</dd></>}
         <dt>ວັນທີປະກາດ</dt>
         <dd>{new Date(job.createdAt).toLocaleDateString('lo-LA')}</dd>
+        {job.company?.about && <><dt>ກ່ຽວກັບບໍລິສັດ</dt><dd>{job.company.about}</dd></>}
       </dl>
     </>
   );
@@ -93,7 +94,7 @@ export default function Home() {
           )}
         </div>
       ) : user?.role === 'employees' ? (
-        <p className="board-hint">ຂໍ້ມູນຕິດຕໍ່ສຳລັບບໍລິສັດເທົ່ານັ້ນ</p>
+        <p className="board-hint"></p>
       ) : null}
     </>
   );

@@ -40,6 +40,7 @@ export default function Register() {
     address: '',
     phone: '',
     logo: null,
+    about: '',
   });
 
   useEffect(() => {
@@ -354,7 +355,7 @@ export default function Register() {
               {error && <div className="alert alert-error">{error}</div>}
 
               <div className="form-group">
-                <label>ຮູບໂປຣໄຟລ໌ / ໂລໂກ້ບໍລິສັດ</label>
+                <label>ໂລໂກ້ບໍລິສັດ</label>
                 <div className="avatar-upload">
                   <label htmlFor="logo" className="avatar-preview company-logo">
                     {companyForm.logo ? (
@@ -382,6 +383,10 @@ export default function Register() {
               <div className="form-group">
                 <label>ເບີໂທບໍລິສັດ</label>
                 <input value={companyForm.phone} onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })} required />
+              </div>
+              <div className="form-group">
+                <label>ກ່ຽວກັບບໍລິສັດ</label>
+                <textarea value={companyForm.about} onChange={(e) => setCompanyForm({ ...companyForm, about: e.target.value })} rows={3} placeholder="ບອກເລົ່າກ່ຽວກັບບໍລິສັດຂອງທ່ານ..." />
               </div>
 
               <button type="submit" className="btn btn-primary btn-full" disabled={loading}>

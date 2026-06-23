@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { IconMail, IconPhone } from './Icons';
+import logoImg from '../assets/logo.png';
 
 export default function Footer() {
   return (
@@ -9,7 +10,7 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="footer-col footer-brand-col">
             <Link to="/" className="logo footer-logo">
-              <span className="logo-mark">S</span>
+              <img src={logoImg} alt="Sokviek Logo" className="logo-img" />
               Sokviek
             </Link>
             <p className="footer-desc">
@@ -88,11 +89,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="footer-bottom">
+        {/* <div className="footer-bottom">
           <p className="copyright">
-            Copyright &copy; {new Date().getFullYear()} Sokviek. All rights reserved.
+            Copyright &copy; {new Date().getFullYear()}
           </p>
-        </div>
+        </div> */}
       </div>
     </footer>
   );
