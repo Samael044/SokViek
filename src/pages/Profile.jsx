@@ -176,6 +176,24 @@ export default function Profile() {
     }
   };
 
+  const handleViewResumeImage = (img) => {
+    const newTab = window.open();
+    if (newTab) {
+      newTab.document.body.style.margin = '0';
+      newTab.document.body.style.background = '#0e1111';
+      newTab.document.body.style.display = 'flex';
+      newTab.document.body.style.justifyContent = 'center';
+      newTab.document.body.style.alignItems = 'center';
+      newTab.document.body.style.height = '100vh';
+      const image = newTab.document.createElement('img');
+      image.src = img;
+      image.style.maxWidth = '100%';
+      image.style.maxHeight = '100%';
+      image.style.objectFit = 'contain';
+      newTab.document.body.appendChild(image);
+    }
+  };
+
   const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -573,9 +591,11 @@ export default function Profile() {
                         {resumeForm.resumeImages.map((img, idx) => (
                           <a
                             key={idx}
-                            href={img}
-                            target="_blank"
-                            rel="noreferrer"
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleViewResumeImage(img);
+                            }}
                             style={{
                               display: 'block',
                               width: '100%',
@@ -999,9 +1019,11 @@ export default function Profile() {
                     {selectedApplicantForDetail.user.resume.resumeImages.map((img, idx) => (
                       <a
                         key={idx}
-                        href={img}
-                        target="_blank"
-                        rel="noreferrer"
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleViewResumeImage(img);
+                        }}
                         className="resume-img-link"
                       >
                         <img src={img} alt={`Resume ${idx + 1}`} style={{ width: '100%', height: 'auto', display: 'block' }} />
