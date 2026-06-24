@@ -9,12 +9,23 @@ export function beToCe(be) {
   return Number(be) - BE_OFFSET;
 }
 
+/** Normalize any ISO date/datetime string → YYYY-MM-DD */
+function normalizeIso(iso) {
+  if (!iso) return '';
+  // Handle full timestamps like "2004-04-15T17:00:00.000Z"
+  if (typeof iso === 'string' && iso.includes('T')) {
+    return iso.split('T')[0];
+  }
+  return String(iso);
+}
+
 /** Convert YYYY-MM-DD → day, month, year (stored as CE) */
 export function parseIsoDate(iso) {
-  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+  const normalized = normalizeIso(iso);
+  if (!normalized || !/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
     return { day: '', month: '', year: '' };
   }
-  const [year, month, day] = iso.split('-');
+  const [year, month, day] = normalized.split('-');
   return {
     day: String(Number(day)),
     month: String(Number(month)),
@@ -67,12 +78,12 @@ export function formatDateLao(iso) {
   return `${day} ${monthName} ${ceToBe(year)}`;
 }
 
-/** Display DD/MM/YYYY (BE) */
+/** Display DD-MM-YYYY (CE year, e.g. 15-04-2004) */
 export function formatDateDMY(iso) {
   if (!iso) return '-';
   const { day, month, year } = parseIsoDate(iso);
-  if (!day || !month || !year) return iso;
-  return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${ceToBe(year)}`;
+  if (!day || !month || !year) return typeof iso === 'string' && iso.includes('T') ? iso.split('T')[0] : String(iso);
+  return `${day.padStart(2, '0')}-${month.padStart(2, '0')}-${year}`;
 }
 
 /** Convert Day/Month/Year text → YYYY-MM-DD (supports BE and CE) */

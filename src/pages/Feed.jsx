@@ -16,6 +16,8 @@ export default function Feed({ mode, title, desc, empty }) {
     const [selected, setSelected] = useState(null);
     const [applied, setApplied] = useState(false);
     const [applyLoading, setApplyLoading] = useState(false);
+    const [inviteLoading, setInviteLoading] = useState(false);
+    const [invitedUserIds, setInvitedUserIds] = useState(new Set());
 
     const canContact = user?.role === 'company' || user?.role === 'admin';
 
@@ -88,6 +90,18 @@ export default function Feed({ mode, title, desc, empty }) {
         }
     };
 
+    const handleSendInvite = async (seekerUserId) => {
+        try {
+            setInviteLoading(true);
+            await api.sendHireInvite(seekerUserId);
+            setInvitedUserIds((prev) => new Set([...prev, seekerUserId]));
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setInviteLoading(false);
+        }
+    };
+
     const renderJobDetail = (job) => (
         <>
             <div className="detail-meta">
@@ -138,6 +152,21 @@ export default function Feed({ mode, title, desc, empty }) {
                         >
                             {applyLoading ? 'ກຳລັງສະໝັກ...' : 'ສະໝັກງານ'}
                         </button>
+                    )}
+                </div>
+            )}
+            {user?.role === 'employees' && (job.company?.email || job.company?.phone) && (
+                <div className="contact-box" style={{ marginTop: '1.25rem' }}>
+                    <strong>ຕິດຕໍ່ຈ້າງງານ</strong>
+                    {job.company?.phone && (
+                        <a href={`tel:${job.company.phone}`} className="contact-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <IconPhone size={14} /> {job.company.phone}
+                        </a>
+                    )}
+                    {job.company?.email && (
+                        <a href={`mailto:${job.company.email}`} className="contact-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <IconMail size={14} /> {job.company.email}
+                        </a>
                     )}
                 </div>
             )}
@@ -202,7 +231,7 @@ export default function Feed({ mode, title, desc, empty }) {
                     </div>
                 </div>
             )}
-            {canContact && item.contact ? (
+            {/* {canContact && item.contact ? (
                 <div className="contact-box">
                     <strong>ຕິດຕໍ່</strong>
                     {item.contact.phone && (
@@ -218,7 +247,45 @@ export default function Feed({ mode, title, desc, empty }) {
                 </div>
             ) : user?.role === 'employees' ? (
                 <p className="board-hint"></p>
-            ) : null}
+            ) : null} */}
+            {canContact && (
+                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
+                    {invitedUserIds.has(item.id) ? (
+                        <>
+                            <button
+                                type="button"
+                                className="btn btn-outline"
+                                style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
+                                disabled
+                            >
+                                ສົ່ງຄຳເຊີນແລ້ວ
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-danger"
+                                style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
+                                onClick={() => setInvitedUserIds((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(item.id);
+                                    return next;
+                                })}
+                            >
+                                ຍົກເລີກ
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}
+                            disabled={inviteLoading}
+                            onClick={() => handleSendInvite(item.id)}
+                        >
+                            {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຕ້ອງການຈ້າງ'}
+                        </button>
+                    )}
+                </div>
+            )}
         </>
     );
 

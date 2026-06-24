@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api, calculateAge, fileToBase64 } from '../api/client';
 import BirthDateInput from '../components/BirthDateInput';
-import { formatDateLao } from '../utils/date';
+import { formatDateLao, formatDateDMY } from '../utils/date';
 import { JOB_TYPES, JOB_TYPE_OPTIONS } from '../constants/jobTypes';
 import PostJobFab from '../components/PostJobFab';
 import { IconUser, IconCompany, IconGear, IconPhone, IconMail, IconDoc, IconMapPin, IconSearch } from '../components/Icons';
@@ -48,6 +48,8 @@ export default function Profile() {
   const [selectedApplicantForDetail, setSelectedApplicantForDetail] = useState(null);
   const [editingJobId, setEditingJobId] = useState(null);
   const [activeDropdownJobId, setActiveDropdownJobId] = useState(null);
+  const [hireLoading, setHireLoading] = useState(false);
+  const [hiredApplicationIds, setHiredApplicationIds] = useState(new Set());
 
   useEffect(() => {
     const handleClose = () => setActiveDropdownJobId(null);
@@ -57,7 +59,12 @@ export default function Profile() {
 
   useEffect(() => {
     if (user?.profile) {
-      setForm({ ...user.profile });
+      // Normalize birthDate: strip time portion if MySQL returns full ISO timestamp
+      const profile = { ...user.profile };
+      if (profile.birthDate && typeof profile.birthDate === 'string' && profile.birthDate.includes('T')) {
+        profile.birthDate = profile.birthDate.split('T')[0];
+      }
+      setForm(profile);
     }
   }, [user]);
 
@@ -110,6 +117,20 @@ export default function Profile() {
     setJobForm({ title: '', description: '', salary: '', location: '', requirements: '', type: 'full-time' });
     setShowJobForm(true);
     document.getElementById('company-jobs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleHire = async (applicant) => {
+    if (!selectedJobForApplicants) return;
+    try {
+      setHireLoading(true);
+      await api.hireApplicant(selectedJobForApplicants.id, applicant.id);
+      setHiredApplicationIds((prev) => new Set([...prev, applicant.id]));
+      alert(`ສົ່ງການສະເໜີຈ້າງໃຫ້ ${applicant.user.profile ? `${applicant.user.profile.firstName} ${applicant.user.profile.lastName}` : applicant.user.email} ສຳເລັດ!`);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setHireLoading(false);
+    }
   };
 
   const handleEditClick = (job) => {
@@ -297,6 +318,7 @@ export default function Profile() {
             value={form.birthDate || ''}
             onChange={(birthDate) => setForm({ ...form, birthDate })}
             ageBadge={age !== null ? <span className="age-badge">ອາຍຸ {age} ປີ</span> : null}
+            required
           />
           <div className="form-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             <div className="form-group">
@@ -336,7 +358,7 @@ export default function Profile() {
           <h2>{user.profile?.firstName} {user.profile?.lastName}</h2>
           <dl>
             <dt>ເພດ</dt><dd>{genderLabels[user.profile?.gender] || '-'}</dd>
-            <dt>ວັນເກີດ</dt><dd lang="lo">{formatDateLao(user.profile?.birthDate)} (ອາຍຸ {age ?? '-'} ປີ)</dd>
+            <dt>ວັນເກີດ</dt><dd>{formatDateDMY(user.profile?.birthDate)} (ອາຍຸ {age ?? '-'} ປີ)</dd>
             <dt>ສະຖານທີ່ຢູ່</dt><dd>{[user.profile?.village, user.profile?.district, user.profile?.province].filter(Boolean).join(', ') || user.profile?.location || '-'}</dd>
             <dt>ສະຖານະ</dt><dd>{maritalLabels[user.profile?.maritalStatus] || '-'}</dd>
             <dt>ເບີໂທ</dt><dd>{user.profile?.phone || '-'}</dd>
@@ -925,8 +947,8 @@ export default function Profile() {
                     {selectedApplicantForDetail.user.profile?.birthDate && (
                       <tr>
                         <td className="applicant-info-label">ວັນເກີດ</td>
-                        <td className="applicant-info-value" lang="lo">
-                          {formatDateLao(selectedApplicantForDetail.user.profile.birthDate)}
+                        <td className="applicant-info-value">
+                          {formatDateDMY(selectedApplicantForDetail.user.profile.birthDate)}
                           <span className="applicant-age-badge">
                             ອາຍຸ {calculateAge(selectedApplicantForDetail.user.profile.birthDate)} ປີ
                           </span>
@@ -1034,6 +1056,54 @@ export default function Profile() {
                       </a>
                     ))}
                   </div>
+                </div>
+              )}
+              {/* ── ຕ້ອງການຈ້າງ ── */}
+              <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+                {hiredApplicationIds.has(selectedApplicantForDetail.id) ? (
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    style={{ width: '100%', padding: '0.85rem', fontSize: '1rem' }}
+                    disabled
+                  >
+                    ສົ່ງການສະເໜີຈ້າງແລ້ວ
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ width: '100%', padding: '0.85rem', fontSize: '1rem' }}
+                    disabled={hireLoading}
+                    onClick={() => handleHire(selectedApplicantForDetail)}
+                  >
+                    {hireLoading ? 'ກຳລັງສົ່ງ...' : 'ຕ້ອງການຈ້າງ'}
+                  </button>
+                )}
+              </div>
+
+              {/* ── ຕິດຕໍ່ຈ້າງງານ ── */}
+              {(selectedApplicantForDetail.user.profile?.phone || selectedApplicantForDetail.user.email) && (
+                <div className="contact-box" style={{ marginTop: '1rem' }}>
+                  <strong>ຕິດຕໍ່ຈ້າງງານ</strong>
+                  {selectedApplicantForDetail.user.profile?.phone && (
+                    <a
+                      href={`tel:${selectedApplicantForDetail.user.profile.phone}`}
+                      className="contact-link"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+                    >
+                      <IconPhone size={14} /> {selectedApplicantForDetail.user.profile.phone}
+                    </a>
+                  )}
+                  {selectedApplicantForDetail.user.email && (
+                    <a
+                      href={`mailto:${selectedApplicantForDetail.user.email}`}
+                      className="contact-link"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+                    >
+                      <IconMail size={14} /> {selectedApplicantForDetail.user.email}
+                    </a>
+                  )}
                 </div>
               )}
 

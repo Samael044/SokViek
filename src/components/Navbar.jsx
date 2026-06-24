@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { NAV_LINKS } from '../config/demoUsers';
+import NotificationBell from './NotificationBell';
 import logoImg from '../assets/logo.png';
 
 export default function Navbar() {
@@ -66,10 +67,12 @@ export default function Navbar() {
 
         <div className="nav-actions" ref={menuRef}>
           {user ? (
-            <>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <NotificationBell />
               <button
                 type="button"
                 className="profile-icon-btn"
+                style={{ marginLeft: '1rem' }}
                 onClick={() => setMenuOpen(!menuOpen)}
                 aria-label="ໂປຣໄຟລ໌"
               >
@@ -97,7 +100,7 @@ export default function Navbar() {
                   <button type="button" className="dropdown-item dropdown-logout" onClick={handleLogout}>ອອກຈາກລະບົບ</button>
                 </div>
               )}
-            </>
+            </div>
           ) : (
             <div className="nav-auth-buttons">
               <Link to="/login" className="btn btn-primary btn-sm">ເຂົ້າສູ່ລະບົບ</Link>

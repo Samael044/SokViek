@@ -113,11 +113,28 @@ export const api = {
   checkApplied: (jobId) => request(`/jobs/${jobId}/applied`),
 
   getJobApplications: (jobId) => request(`/jobs/${jobId}/applications`),
+
+  hireApplicant: (jobId, applicationId) =>
+    request(`/jobs/${jobId}/applications/${applicationId}/hire`, { method: 'PUT' }),
+
+  getNotifications: () => request('/notifications'),
+
+  markNotificationRead: (id) => request(`/notifications/${id}/read`, { method: 'PUT' }),
+
+  markAllNotificationsRead: () => request('/notifications/read-all', { method: 'PUT' }),
+
+  sendHireInvite: (toUserId) =>
+    request('/notifications/invite', { method: 'POST', body: JSON.stringify({ toUserId }) }),
 };
 
 export function calculateAge(birthDate) {
-  if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null;
-  const [y, m, d] = birthDate.split('-').map(Number);
+  if (!birthDate) return null;
+  // Normalize: strip time portion if full ISO timestamp
+  const dateOnly = typeof birthDate === 'string' && birthDate.includes('T')
+    ? birthDate.split('T')[0]
+    : birthDate;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return null;
+  const [y, m, d] = dateOnly.split('-').map(Number);
   const today = new Date();
   let age = today.getFullYear() - y;
   const monthDiff = today.getMonth() + 1 - m;
