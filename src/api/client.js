@@ -125,6 +125,23 @@ export const api = {
 
   sendHireInvite: (toUserId) =>
     request('/notifications/invite', { method: 'POST', body: JSON.stringify({ toUserId }) }),
+
+  getSavedCandidates: () => request('/saved'),
+  saveCandidate: (employeeId) => request(`/saved/${employeeId}`, { method: 'POST' }),
+  unsaveCandidate: (employeeId) => request(`/saved/${employeeId}`, { method: 'DELETE' }),
+  getSavedStatus: (employeeId) => request(`/saved/${employeeId}/status`),
+
+  getSavedCompanies: () => request('/saved-companies'),
+  saveCompany: (companyId) => request(`/saved-companies/${companyId}`, { method: 'POST' }),
+  unsaveCompany: (companyId) => request(`/saved-companies/${companyId}`, { method: 'DELETE' }),
+  getSavedCompanyStatus: (companyId) => request(`/saved-companies/${companyId}/status`),
+
+  getInterviews: () => request('/interviews'),
+  getMyInterviews: () => request('/interviews/mine'),
+  createInterview: (data) => request('/interviews', { method: 'POST', body: JSON.stringify(data) }),
+  cancelInterview: (id) => request(`/interviews/${id}/cancel`, { method: 'PUT' }),
+
+  submitReport: (data) => request('/reports', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 export function calculateAge(birthDate) {

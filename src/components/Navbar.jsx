@@ -63,6 +63,42 @@ export default function Navbar() {
               </NavLink>
             </>
           )}
+
+          {/* เมนูสำหรับ Company */}
+          {user?.role === 'company' && (
+            <>
+              <NavLink
+                to="/saved-candidates"
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              >
+                ພະນັກງານທີ່ບັນທຶກ
+              </NavLink>
+              <NavLink
+                to="/interviews"
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              >
+                ລາຍການສຳພາດ
+              </NavLink>
+            </>
+          )}
+
+          {/* เมนูสำหรับ Seeker/Employees */}
+          {user?.role === 'employees' && (
+            <>
+              <NavLink
+                to="/saved-companies"
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              >
+                ບໍລິສັດທີ່ບັນທຶກ
+              </NavLink>
+              <NavLink
+                to="/interviews"
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              >
+                ລາຍການສຳພາດ
+              </NavLink>
+            </>
+          )}
         </div>
 
         <div className="nav-actions" ref={menuRef}>

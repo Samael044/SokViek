@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { JOB_TYPES } from '../constants/jobTypes';
 import DetailModal from '../components/DetailModal';
 import PostJobFab from '../components/PostJobFab';
+import ReportModal from '../components/ReportModal';
 import { IconCompany, IconUser, IconPhone, IconMail, IconInbox } from '../components/Icons';
 
 export default function Feed({ mode, title, desc, empty }) {
@@ -18,8 +19,19 @@ export default function Feed({ mode, title, desc, empty }) {
     const [applyLoading, setApplyLoading] = useState(false);
     const [inviteLoading, setInviteLoading] = useState(false);
     const [invitedUserIds, setInvitedUserIds] = useState(new Set());
+    const [isSavedState, setIsSavedState] = useState(false);
+    const [savedLoading, setSavedLoading] = useState(false);
+    const [reportTarget, setReportTarget] = useState(null);
 
     const canContact = user?.role === 'company' || user?.role === 'admin';
+
+    const handleOpenReport = (type, id) => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        setReportTarget({ type, id });
+    };
 
     const loadFeed = async (params = filters) => {
         setLoading(true);
@@ -60,9 +72,52 @@ export default function Feed({ mode, title, desc, empty }) {
             try {
                 const res = await api.checkApplied(item.data.id);
                 setApplied(res.applied);
+
+                setSavedLoading(true);
+                const resCompanySaved = await api.getSavedCompanyStatus(item.data.companyId);
+                setIsSavedState(resCompanySaved.saved);
             } catch (err) {
                 console.error(err);
+            } finally {
+                setSavedLoading(false);
             }
+        } else if (item.type === 'resume' && user.role === 'company') {
+            try {
+                setSavedLoading(true);
+                const res = await api.getSavedStatus(item.id);
+                setIsSavedState(res.saved);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setSavedLoading(false);
+            }
+        }
+    };
+
+    const handleToggleSave = async (id, type) => {
+        try {
+            setSavedLoading(true);
+            if (type === 'company') {
+                if (isSavedState) {
+                    await api.unsaveCompany(id);
+                    setIsSavedState(false);
+                } else {
+                    await api.saveCompany(id);
+                    setIsSavedState(true);
+                }
+            } else if (type === 'resume') {
+                if (isSavedState) {
+                    await api.unsaveCandidate(id);
+                    setIsSavedState(false);
+                } else {
+                    await api.saveCandidate(id);
+                    setIsSavedState(true);
+                }
+            }
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setSavedLoading(false);
         }
     };
 
@@ -146,13 +201,22 @@ export default function Feed({ mode, title, desc, empty }) {
                         <button
                             type="button"
                             className="btn btn-primary"
-                            style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}
+                            style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
                             disabled={applyLoading}
                             onClick={() => handleApply(job.id)}
                         >
                             {applyLoading ? 'ກຳລັງສະໝັກ...' : 'ສະໝັກງານ'}
                         </button>
                     )}
+                    <button
+                        type="button"
+                        className="btn btn-outline"
+                        style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap' }}
+                        disabled={savedLoading}
+                        onClick={() => handleToggleSave(job.companyId, 'company')}
+                    >
+                        {savedLoading ? '...' : isSavedState ? '⭐ ບັນທຶກແລ້ວ' : '☆ ບັນທຶກບໍລິສັດ'}
+                    </button>
                 </div>
             )}
             {user?.role === 'employees' && (job.company?.email || job.company?.phone) && (
@@ -231,23 +295,6 @@ export default function Feed({ mode, title, desc, empty }) {
                     </div>
                 </div>
             )}
-            {/* {canContact && item.contact ? (
-                <div className="contact-box">
-                    <strong>ຕິດຕໍ່</strong>
-                    {item.contact.phone && (
-                        <a href={`tel:${item.contact.phone}`} className="contact-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <IconPhone size={14} /> {item.contact.phone}
-                        </a>
-                    )}
-                    {item.contact.email && (
-                        <a href={`mailto:${item.contact.email}`} className="contact-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <IconMail size={14} /> {item.contact.email}
-                        </a>
-                    )}
-                </div>
-            ) : user?.role === 'employees' ? (
-                <p className="board-hint"></p>
-            ) : null} */}
             {canContact && (
                 <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
                     {invitedUserIds.has(item.id) ? (
@@ -277,13 +324,22 @@ export default function Feed({ mode, title, desc, empty }) {
                         <button
                             type="button"
                             className="btn btn-primary"
-                            style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}
+                            style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
                             disabled={inviteLoading}
                             onClick={() => handleSendInvite(item.id)}
                         >
                             {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຕ້ອງການຈ້າງ'}
                         </button>
                     )}
+                    <button
+                        type="button"
+                        className="btn btn-outline"
+                        style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap' }}
+                        disabled={savedLoading}
+                        onClick={() => handleToggleSave(item.id, 'resume')}
+                    >
+                        {savedLoading ? '...' : isSavedState ? '⭐ ບັນທຶກແລ້ວ' : '☆ ບັນທຶກຜູ້ຊອກວຽກ'}
+                    </button>
                 </div>
             )}
         </>
@@ -336,7 +392,37 @@ export default function Feed({ mode, title, desc, empty }) {
                                     type="button"
                                     className={`grid-tile grid-tile-premium grid-tile-${item.type}`}
                                     onClick={() => handleTileClick(item)}
+                                    style={{ position: 'relative' }}
                                 >
+                                    {/* Report button */}
+                                    {user && (item.type === 'job' ? user.id !== item.data?.companyId : user.id !== item.id) && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleOpenReport(item.type, item.id);
+                                            }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '10px',
+                                                left: '10px',
+                                                zIndex: 10,
+                                                background: 'rgba(255, 255, 255, 0.9)',
+                                                border: '1px solid var(--border)',
+                                                borderRadius: '50%',
+                                                width: '32px',
+                                                height: '32px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                            }}
+                                            title="Report"
+                                        >
+                                            🚩
+                                        </button>
+                                    )}
+
                                     {/* Banner Area */}
                                     <div className="tile-banner">
                                         <span className={`tile-type-badge-premium tile-type-${item.type}`}>
@@ -400,6 +486,14 @@ export default function Feed({ mode, title, desc, empty }) {
                         ? renderJobDetail(selected.data)
                         : renderResumeDetail(selected.data)}
                 </DetailModal>
+            )}
+
+            {reportTarget && (
+                <ReportModal
+                    targetType={reportTarget.type}
+                    targetId={reportTarget.id}
+                    onClose={() => setReportTarget(null)}
+                />
             )}
 
             {mode === 'job' && user?.role === 'company' && (

@@ -11,6 +11,10 @@ import Employees from './pages/Employees';
 import Dashboard from './pages/Dashboard';
 import AdminManage from './pages/AdminManage';
 
+import SavedCandidates from './pages/SavedCandidates';
+import SavedCompanies from './pages/SavedCompanies';
+import Interviews from './pages/Interviews';
+
 export default function App() {
   return (
     <div className="app">
@@ -25,6 +29,32 @@ export default function App() {
           <Route path="/employees" element={<Employees />} />
           <Route path="/browse" element={<Navigate to="/jobs" replace />} />
           <Route path="/find-employees" element={<Navigate to="/employees" replace />} />
+          
+          <Route
+            path="/saved-candidates"
+            element={
+              <ProtectedRoute roles={['company']}>
+                <SavedCandidates />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/saved-companies"
+            element={
+              <ProtectedRoute roles={['employees']}>
+                <SavedCompanies />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interviews"
+            element={
+              <ProtectedRoute roles={['employees', 'company']}>
+                <Interviews />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/dashboard"
             element={
