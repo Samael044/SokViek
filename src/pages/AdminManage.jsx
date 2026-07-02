@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../api/client';
 import DetailModal from '../components/DetailModal';
-import { IconAlert, IconUser, IconCompany, IconGear, IconBell, IconSuccess, IconGroup } from '../components/Icons';
+import { IconAlert, IconUser, IconCompany, IconGear, IconBell, IconSuccess, IconGroup, IconEye, IconEyeOff } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 
 const roleLabels = {
@@ -27,6 +27,17 @@ export default function AdminManage() {
   const [toast, setToast] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  const [showCreateAdmin, setShowCreateAdmin] = useState(false);
+  const [adminForm, setAdminForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+  });
+  const [adminFormError, setAdminFormError] = useState('');
+  const [adminFormLoading, setAdminFormLoading] = useState(false);
+
   // Password confirmation modal
   const [pwModal, setPwModal] = useState(null); // { userId }
   const [pwValue, setPwValue] = useState('');
@@ -34,6 +45,31 @@ export default function AdminManage() {
   const [pwLoading, setPwLoading] = useState(false);
   const [pwVisible, setPwVisible] = useState(false);
   const pwInputRef = useRef(null);
+
+  const handleCreateAdminSubmit = async (e) => {
+    e.preventDefault();
+    setAdminFormError('');
+    if (!adminForm.firstName || !adminForm.lastName || !adminForm.password || (!adminForm.email && !adminForm.phone)) {
+      setAdminFormError('ກະລຸນາກອກຂໍ້ມູນໃຫ້ຄົບຖ້ວນ (ຊື່, ນາມສະກຸນ, ອີເມວ/ເບີ, ແລະລະຫັດຜ່ານ)');
+      return;
+    }
+    if (adminForm.password.length < 6) {
+      setAdminFormError('ລະຫັດຜ່ານຕ້ອງມີຢ່າງໜ້ອຍ 6 ຕົວອັກສອນ');
+      return;
+    }
+    setAdminFormLoading(true);
+    try {
+      await api.createAdmin(adminForm);
+      showToast('ສ້າງບັນຊີ Admin ສຳເລັດແລ້ວ');
+      setShowCreateAdmin(false);
+      setAdminForm({ firstName: '', lastName: '', email: '', phone: '', password: '' });
+      await loadData();
+    } catch (err) {
+      setAdminFormError(err.message || 'ເກີດຂໍ້ຜິດພາດ');
+    } finally {
+      setAdminFormLoading(false);
+    }
+  };
 
   const renderUserDetail = (u) => {
     if (!u) return null;
@@ -267,7 +303,7 @@ export default function AdminManage() {
         await api.verifyAdminPassword(pwValue);
         setPwModal(null);
         setActionLoading((p) => ({ ...p, [`role_${id}`]: true }));
-        await api.updateUserRole(id, role);
+        await api.updateUserRole(id, role, pwValue);
         showToast('ອັບເດດສິດສຳເລັດ');
       } else if (action === 'delete') {
         setActionLoading((p) => ({ ...p, [`delete_${id}`]: true }));
@@ -317,11 +353,21 @@ export default function AdminManage() {
             <p className="page-desc">ອະນຸມັດການສະໝັກ ແລະ ກຳນົດສິດຜູ້ໃຊ້ງານໃນລະບົບ</p>
           </div>
           <div className="header-badges">
-            {pendingUsers.length > 0 && (
-              <span className="badge-pending-count" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                <IconBell size={16} /> ລໍຖ້າອະນຸມັດ {pendingUsers.length} ລາຍການ
-              </span>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => setShowCreateAdmin(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+              >
+                + ເພີ່ມ Admin
+              </button>
+              {pendingUsers.length > 0 && (
+                <span className="badge-pending-count" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <IconBell size={16} /> ລໍຖ້າອະນຸມັດ {pendingUsers.length} ລາຍການ
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -600,9 +646,8 @@ export default function AdminManage() {
                   className="pw-toggle-btn"
                   onClick={() => setPwVisible((v) => !v)}
                   tabIndex={-1}
-                  style={{ fontSize: '0.8125rem', padding: '0.25rem 0.5rem' }}
                 >
-                  {pwVisible ? 'ເຊື່ອງ' : 'ສະແດງ'}
+                  {pwVisible ? <IconEyeOff size={18} /> : <IconEye size={18} />}
                 </button>
               </div>
               {pwError && <p className="pw-error-msg" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><IconAlert size={14} /> {pwError}</p>}
@@ -637,6 +682,98 @@ export default function AdminManage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showCreateAdmin && (
+        <DetailModal
+          title="ເພີ່ມ Admin ໃໝ່"
+          onClose={() => setShowCreateAdmin(false)}
+        >
+          <form onSubmit={handleCreateAdminSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem 0' }}>
+            {adminFormError && (
+              <div style={{ padding: '0.75rem', background: '#fef2f2', color: 'var(--error)', borderRadius: '8px', fontSize: '0.875rem' }}>
+                {adminFormError}
+              </div>
+            )}
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>ຊື່ (First Name) *</label>
+                <input
+                  type="text"
+                  style={{ padding: '0.625rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                  value={adminForm.firstName}
+                  onChange={(e) => setAdminForm({ ...adminForm, firstName: e.target.value })}
+                  required
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>ນາມສະກຸນ (Last Name) *</label>
+                <input
+                  type="text"
+                  style={{ padding: '0.625rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                  value={adminForm.lastName}
+                  onChange={(e) => setAdminForm({ ...adminForm, lastName: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>ອີເມວ (Email)</label>
+              <input
+                type="email"
+                placeholder="admin@example.com"
+                style={{ padding: '0.625rem', borderRadius: '8px', border: '1px solid var(--border)', width: '100%' }}
+                value={adminForm.email}
+                onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>ເບີໂທລະສັບ (Phone)</label>
+              <input
+                type="text"
+                placeholder="020xxxxxxxx"
+                style={{ padding: '0.625rem', borderRadius: '8px', border: '1px solid var(--border)', width: '100%' }}
+                value={adminForm.phone}
+                onChange={(e) => setAdminForm({ ...adminForm, phone: e.target.value })}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>ລະຫັດຜ່ານ (Password) *</label>
+              <input
+                type="password"
+                placeholder="ຢ່າງໜ້ອຍ 6 ຕົວອັກສອນ"
+                style={{ padding: '0.625rem', borderRadius: '8px', border: '1px solid var(--border)', width: '100%' }}
+                value={adminForm.password}
+                onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ flex: 1 }}
+                onClick={() => setShowCreateAdmin(false)}
+                disabled={adminFormLoading}
+              >
+                ຍົກເລີກ
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+                disabled={adminFormLoading}
+              >
+                {adminFormLoading ? 'ກຳລັງບັນທຶກ...' : 'ບັນທຶກ'}
+              </button>
+            </div>
+          </form>
+        </DetailModal>
       )}
     </div>
   );

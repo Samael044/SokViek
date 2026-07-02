@@ -793,7 +793,7 @@ export default function Profile() {
         {user.role === 'admin' && (
           <div className="card" style={{ marginTop: '1rem' }}>
             <h3 style={{ marginBottom: '0.75rem' }}>ເມນູຜູ້ດູແລລະບົບ</h3>
-            <Link to="/dashboard" className="btn btn-outline">ໄປທີ່ Dashboard</Link>
+            <Link to="/admin/reports" className="btn btn-outline">ໄປທີ່ ລາຍງານລະບົບ</Link>
           </div>
         )}
 

@@ -6,6 +6,10 @@ import DetailModal from '../components/DetailModal';
 import { IconUser, IconInbox, IconPhone, IconMail } from '../components/Icons';
 import { JOB_TYPES } from '../constants/jobTypes';
 import { formatDateDMY } from '../utils/date';
+import { openImageInNewTab } from '../utils/image';
+
+const genderLabels = { male: 'ຊາຍ', female: 'ຍິງ', other: 'ອື່ນໆ' };
+const maritalLabels = { single: 'ໂສດ', dating: 'ມີແຟນແລ້ວ', married: 'ແຕ່ງງານແລ້ວ' };
 
 export default function SavedCandidates() {
   const { user } = useAuth();
@@ -78,7 +82,10 @@ export default function SavedCandidates() {
       </div>
       <p className="detail-desc">{item.resume?.summary}</p>
       <dl className="detail-dl">
+        <dt>ເພດ</dt><dd>{genderLabels[item.profile?.gender] || '-'}</dd>
         <dt>ອາຍຸ</dt><dd>{item.profile?.age ?? '-'} ປີ</dd>
+        <dt>ສະຖານະພາບ</dt><dd>{maritalLabels[item.profile?.maritalStatus] || '-'}</dd>
+        <dt>ທີ່ຢູ່ປັດຈຸບັນ</dt><dd>{item.profile?.location || '-'}</dd>
         {item.resume?.skills && <><dt>ທັກສະ</dt><dd>{item.resume.skills}</dd></>}
         {item.resume?.experience && <><dt>ປະສົບການ</dt><dd>{item.resume.experience}</dd></>}
         {item.resume?.education && <><dt>ການສຶກສາ</dt><dd>{item.resume.education}</dd></>}
@@ -89,15 +96,14 @@ export default function SavedCandidates() {
           <strong className="block text-sm font-bold text-gray-800 mb-3">ຮູບພາບ Resume / CV:</strong>
           <div className="grid-tiles" style={{ gridTemplateColumns: '1fr 1fr' }}>
             {item.resume.resumeImages.map((img, idx) => (
-              <a
+              <button
                 key={idx}
-                href={img}
-                target="_blank"
-                rel="noreferrer"
-                style={{ display: 'block', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}
+                type="button"
+                onClick={() => openImageInNewTab(img)}
+                style={{ display: 'block', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', padding: 0, background: 'none', cursor: 'pointer', width: '100%' }}
               >
-                <img src={img} alt={`Resume / CV ${idx + 1}`} style={{ width: '100%', height: 'auto' }} />
-              </a>
+                <img src={img} alt={`Resume / CV ${idx + 1}`} style={{ width: '100%', height: 'auto', display: 'block' }} />
+              </button>
             ))}
           </div>
         </div>

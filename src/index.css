@@ -535,13 +535,17 @@ a:hover { color: var(--primary-dark); }
 }
 .detail-dl {
   display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 0.5rem 1rem;
+  grid-template-columns: 120px 1fr;
+  gap: 0.75rem 1.25rem;
   font-size: 0.9375rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  background: var(--bg);
+  padding: 1.25rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
 }
 .detail-dl dt { color: var(--text-muted); font-weight: 600; }
-.detail-dl dd { margin: 0; }
+.detail-dl dd { margin: 0; color: var(--text); }
 
 .my-posts-list { list-style: none; }
 .my-post-item {
@@ -2419,6 +2423,77 @@ a:hover { color: var(--primary-dark); }
   background: #fef2f2;
   color: var(--error);
 }
+
+/* Admin Manage Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-approve,
+.btn-reject {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 1rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+}
+
+.btn-approve {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.btn-approve:hover:not(:disabled) {
+  background: #16a34a;
+  color: white;
+  border-color: #16a34a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.1), 0 2px 4px -1px rgba(22, 163, 74, 0.06);
+}
+
+.btn-approve:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-reject {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.btn-reject:hover:not(:disabled) {
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.1), 0 2px 4px -1px rgba(220, 38, 38, 0.06);
+}
+
+.btn-reject:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-approve:disabled,
+.btn-reject:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 
 
 

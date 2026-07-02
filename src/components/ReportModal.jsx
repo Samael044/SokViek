@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api/client';
+import { IconFlag } from './Icons';
 
 export default function ReportModal({ onClose, targetType, targetId, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -37,7 +38,7 @@ export default function ReportModal({ onClose, targetType, targetId, onSuccess }
         onClose();
       }, 1500);
     } catch (err) {
-      setError(err.message || 'ເກີດຂໍ້ຜິດພາດໃນການສົ່ງລາຍງານ');
+      setError(err.message || 'ເກີດຂໍ้ຜິດພາດໃນການສົ່ງລາຍງານ');
     } finally {
       setLoading(false);
     }
@@ -49,7 +50,9 @@ export default function ReportModal({ onClose, targetType, targetId, onSuccess }
         
         {/* Header */}
         <div className="detail-modal-header">
-          <h2>🚩 ແຈ້ງບັນຫາ / ລະເມີດ</h2>
+          <h2 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <IconFlag size={18} style={{ color: 'var(--error)' }} /> ແຈ້ງບັນຫາ / ລະເມີດ
+          </h2>
           <button type="button" className="modal-x" onClick={onClose} aria-label="ປິດ">×</button>
         </div>
 

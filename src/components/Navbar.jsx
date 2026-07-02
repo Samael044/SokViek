@@ -50,10 +50,10 @@ export default function Navbar() {
           {user?.role === 'admin' && (
             <>
               <NavLink
-                to="/dashboard"
+                to="/admin/reports"
                 className={({ isActive }) => (isActive ? 'nav-link active nav-link-admin' : 'nav-link nav-link-admin')}
               >
-                Dashboard
+                ລາຍງານລະບົບ
               </NavLink>
               <NavLink
                 to="/admin/manage"

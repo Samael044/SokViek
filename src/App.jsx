@@ -8,9 +8,8 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Jobs from './pages/Jobs';
 import Employees from './pages/Employees';
-import Dashboard from './pages/Dashboard';
+import AdminReports from './pages/AdminReports';
 import AdminManage from './pages/AdminManage';
-
 import SavedCandidates from './pages/SavedCandidates';
 import SavedCompanies from './pages/SavedCompanies';
 import Interviews from './pages/Interviews';
@@ -55,15 +54,15 @@ export default function App() {
             }
           />
 
+          <Route path="/dashboard" element={<Navigate to="/admin/reports" replace />} />
           <Route
-            path="/dashboard"
+            path="/admin/reports"
             element={
               <ProtectedRoute roles={['admin']}>
-                <Dashboard />
+                <AdminReports />
               </ProtectedRoute>
             }
           />
-          <Route path="/admin/reports" element={<Navigate to="/dashboard" replace />} />
           <Route
             path="/admin/manage"
             element={

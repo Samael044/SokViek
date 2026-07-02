@@ -4,7 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { JOB_TYPES } from '../constants/jobTypes';
 import DetailModal from '../components/DetailModal';
-import { IconCompany, IconUser, IconPhone, IconMail, IconInbox } from '../components/Icons';
+import ReportModal from '../components/ReportModal';
+import { IconCompany, IconUser, IconPhone, IconMail, IconInbox, IconFlag, IconStar } from '../components/Icons';
+import { openImageInNewTab } from '../utils/image';
+
+const genderLabels = { male: 'ຊາຍ', female: 'ຍິງ', other: 'ອື່ນໆ' };
+const maritalLabels = { single: 'ໂສດ', dating: 'ມີແຟນແລ້ວ', married: 'ແຕ່ງງານແລ້ວ' };
 
 const TYPE_LABELS = {
   job: 'ບໍລິສັດ',
@@ -17,6 +22,13 @@ export default function Home() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [applied, setApplied] = useState(false);
+  const [applyLoading, setApplyLoading] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [invitedUserIds, setInvitedUserIds] = useState(new Set());
+  const [isSavedState, setIsSavedState] = useState(false);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
 
   const canContact = user?.role === 'company' || user?.role === 'admin';
 
@@ -34,16 +46,123 @@ export default function Home() {
     load();
   }, []);
 
-  const handleTileClick = (item) => {
+  const handleTileClick = async (item) => {
     if (!user) {
       navigate('/login');
       return;
     }
     setSelected(item);
+    if (item.type === 'job' && user.role === 'employees') {
+      try {
+        const res = await api.checkApplied(item.data.id);
+        setApplied(res.applied);
+
+        setSavedLoading(true);
+        const resCompanySaved = await api.getSavedCompanyStatus(item.data.companyId);
+        setIsSavedState(resCompanySaved.saved);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setSavedLoading(false);
+      }
+    } else if (item.type === 'resume' && user.role === 'company') {
+      try {
+        setSavedLoading(true);
+        const res = await api.getSavedStatus(item.id);
+        setIsSavedState(res.saved);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setSavedLoading(false);
+      }
+    }
+  };
+
+  const handleToggleSave = async (id, type) => {
+    try {
+      setSavedLoading(true);
+      if (type === 'company') {
+        if (isSavedState) {
+          await api.unsaveCompany(id);
+          setIsSavedState(false);
+        } else {
+          await api.saveCompany(id);
+          setIsSavedState(true);
+        }
+      } else if (type === 'resume') {
+        if (isSavedState) {
+          await api.unsaveCandidate(id);
+          setIsSavedState(false);
+        } else {
+          await api.saveCandidate(id);
+          setIsSavedState(true);
+        }
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSavedLoading(false);
+    }
+  };
+
+  const handleApply = async (jobId) => {
+    try {
+      setApplyLoading(true);
+      await api.applyJob(jobId);
+      setApplied(true);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setApplyLoading(false);
+    }
+  };
+
+  const handleCancelApply = async (jobId) => {
+    try {
+      setApplyLoading(true);
+      await api.cancelApplyJob(jobId);
+      setApplied(false);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setApplyLoading(false);
+    }
+  };
+
+  const handleSendInvite = async (seekerUserId) => {
+    try {
+      setInviteLoading(true);
+      await api.sendHireInvite(seekerUserId);
+      setInvitedUserIds((prev) => new Set([...prev, seekerUserId]));
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleOpenReport = (type, id) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    setReportTarget({ type, id });
   };
 
   const renderJobDetail = (job) => (
     <>
+      {user && user.id !== job.companyId && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
+            onClick={() => handleOpenReport('job', job.id)}
+          >
+            <IconFlag size={12} /> ລາຍງານປະກາດນີ້
+          </button>
+        </div>
+      )}
       <div className="detail-meta">
         <span className="tag tag-job" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
           <IconCompany size={14} /> ປະກາດງານ
@@ -54,17 +173,74 @@ export default function Home() {
       <dl className="detail-dl">
         <dt>ບໍລິສັດ</dt><dd>{job.company?.name || '-'}</dd>
         <dt>ສະຖານທີ່</dt><dd>{job.location}</dd>
-        <dt>ເງินເດືອນ</dt><dd>{job.salary}</dd>
+        <dt>ເງິນເດືອນ</dt><dd>{job.salary}</dd>
         {job.requirements && <><dt>ຄຸນສົມບັດ</dt><dd>{job.requirements}</dd></>}
         <dt>ວັນທີປະກາດ</dt>
         <dd>{new Date(job.createdAt).toLocaleDateString('lo-LA')}</dd>
         {job.company?.about && <><dt>ກ່ຽວກັບບໍລິສັດ</dt><dd>{job.company.about}</dd></>}
       </dl>
+      {user?.role === 'employees' && (
+        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+          {applied ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
+                disabled
+              >
+                ສະໝັກແລ້ວ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
+                disabled={applyLoading}
+                onClick={() => handleCancelApply(job.id)}
+              >
+                {applyLoading ? 'ກຳລັງຍົກເລີກ...' : 'ຍົກເລີກ'}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
+              disabled={applyLoading}
+              onClick={() => handleApply(job.id)}
+            >
+              {applyLoading ? 'ກຳລັງສະໝັກ...' : 'ສະໝັກງານ'}
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+            disabled={savedLoading}
+            onClick={() => handleToggleSave(job.companyId, 'company')}
+          >
+            <IconStar size={16} fill={isSavedState ? 'currentColor' : 'none'} />
+            {isSavedState ? 'ບັນທຶກແລ້ວ' : 'ບັນທຶກບໍລິສັດ'}
+          </button>
+        </div>
+      )}
     </>
   );
 
   const renderResumeDetail = (item) => (
     <>
+      {user && user.id !== item.id && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
+            onClick={() => handleOpenReport('resume', item.id)}
+          >
+            <IconFlag size={12} /> ລາຍງານຜູ້ຊອກວຽກນີ້
+          </button>
+        </div>
+      )}
       <div className="detail-meta">
         <span className="tag tag-resume" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
           <IconUser size={14} /> ພະນັກງານ
@@ -74,28 +250,105 @@ export default function Home() {
       </div>
       <p className="detail-desc">{item.resume?.summary}</p>
       <dl className="detail-dl">
+        <dt>ເພດ</dt><dd>{genderLabels[item.profile?.gender] || '-'}</dd>
         <dt>ອາຍຸ</dt><dd>{item.profile?.age ?? '-'} ປີ</dd>
+        <dt>ສະຖານະພາບ</dt><dd>{maritalLabels[item.profile?.maritalStatus] || '-'}</dd>
+        <dt>ທີ່ຢູ່ປັດຈຸບັນ</dt><dd>{item.profile?.location || '-'}</dd>
         {item.resume?.skills && <><dt>ທັກສະ</dt><dd>{item.resume.skills}</dd></>}
         {item.resume?.experience && <><dt>ປະສົບການ</dt><dd>{item.resume.experience}</dd></>}
         {item.resume?.education && <><dt>ການສຶກສາ</dt><dd>{item.resume.education}</dd></>}
       </dl>
-      {canContact && item.contact ? (
-        <div className="contact-box">
-          <strong>ຕິດຕໍ່</strong>
-          {item.contact.phone && (
-            <a href={`tel:${item.contact.phone}`} className="contact-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-              <IconPhone size={14} /> {item.contact.phone}
-            </a>
-          )}
-          {item.contact.email && (
-            <a href={`mailto:${item.contact.email}`} className="contact-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-              <IconMail size={14} /> {item.contact.email}
-            </a>
-          )}
+      {item.resume?.resumeImages && item.resume.resumeImages.length > 0 && (
+        <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginBottom: '1rem' }}>
+          <strong style={{ display: 'block', fontSize: '0.9375rem', marginBottom: '0.5rem', color: 'var(--text)' }}>ຮູບພາບ Resume / CV:</strong>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {item.resume.resumeImages.map((img, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => openImageInNewTab(img)}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-strong)',
+                  overflow: 'hidden',
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
+                  cursor: 'pointer',
+                  backgroundColor: '#fff',
+                  padding: 0,
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-hover)';
+                  e.currentTarget.style.borderColor = 'var(--primary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                  e.currentTarget.style.borderColor = 'var(--border-strong)';
+                }}
+              >
+                <img
+                  src={img}
+                  alt={`Resume / CV ${idx + 1}`}
+                  style={{ width: '100%', height: 'auto', display: 'block' }}
+                />
+              </button>
+            ))}
+          </div>
         </div>
-      ) : user?.role === 'employees' ? (
-        <p className="board-hint"></p>
-      ) : null}
+      )}
+
+      {canContact && (
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
+          {invitedUserIds.has(item.id) ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
+                disabled
+              >
+                ສົ່ງຄຳເຊີນແລ້ວ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
+                onClick={() => setInvitedUserIds((prev) => {
+                  const next = new Set(prev);
+                  next.delete(item.id);
+                  return next;
+                })}
+              >
+                ຍົກເລີກ
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
+              disabled={inviteLoading}
+              onClick={() => handleSendInvite(item.id)}
+            >
+              {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຕ້ອງການຈ້າງ'}
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap' }}
+            disabled={savedLoading}
+            onClick={() => handleToggleSave(item.id, 'resume')}
+          >
+            {savedLoading ? '...' : isSavedState ? '⭐ ບັນທຶກແລ້ວ' : '☆ ບັນທຶກຜູ້ຊອກວຽກ'}
+          </button>
+        </div>
+      )}
     </>
   );
 
@@ -105,8 +358,7 @@ export default function Home() {
         <div className="container">
           <div className="hero-box">
             <div className="hero-actions">
-              <Link to="/jobs" className="btn btn-primary btn-lg">ເບິ່ງປະກາດງານ</Link>
-              <Link to="/employees" className="btn btn-outline btn-lg">ເບິ່ງພະນັກງານ</Link>
+
             </div>
           </div>
         </div>
@@ -186,11 +438,26 @@ export default function Home() {
       </section>
 
       {selected && (
-        <DetailModal title={selected.title} onClose={() => setSelected(null)}>
+        <DetailModal
+          title={selected.title}
+          onClose={() => {
+            setSelected(null);
+            setApplied(false);
+            setApplyLoading(false);
+          }}
+        >
           {selected.type === 'job'
             ? renderJobDetail(selected.data)
             : renderResumeDetail(selected.data)}
         </DetailModal>
+      )}
+
+      {reportTarget && (
+        <ReportModal
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+          onClose={() => setReportTarget(null)}
+        />
       )}
     </div>
   );

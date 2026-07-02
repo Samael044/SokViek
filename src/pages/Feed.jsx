@@ -6,7 +6,11 @@ import { JOB_TYPES } from '../constants/jobTypes';
 import DetailModal from '../components/DetailModal';
 import PostJobFab from '../components/PostJobFab';
 import ReportModal from '../components/ReportModal';
-import { IconCompany, IconUser, IconPhone, IconMail, IconInbox } from '../components/Icons';
+import { IconCompany, IconUser, IconPhone, IconMail, IconInbox, IconFlag, IconStar } from '../components/Icons';
+import { openImageInNewTab } from '../utils/image';
+
+const genderLabels = { male: 'ຊາຍ', female: 'ຍິງ', other: 'ອື່ນໆ' };
+const maritalLabels = { single: 'ໂສດ', dating: 'ມີແຟນແລ້ວ', married: 'ແຕ່ງງານແລ້ວ' };
 
 export default function Feed({ mode, title, desc, empty }) {
     const { user } = useAuth();
@@ -159,6 +163,18 @@ export default function Feed({ mode, title, desc, empty }) {
 
     const renderJobDetail = (job) => (
         <>
+            {user && user.id !== job.companyId && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+                    <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
+                        onClick={() => handleOpenReport('job', job.id)}
+                    >
+                        <IconFlag size={12} /> ລາຍງານປະກາດນີ້
+                    </button>
+                </div>
+            )}
             <div className="detail-meta">
                 <span className="tag tag-job" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                     <IconCompany size={14} /> ປະກາດງານ
@@ -211,27 +227,13 @@ export default function Feed({ mode, title, desc, empty }) {
                     <button
                         type="button"
                         className="btn btn-outline"
-                        style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap' }}
+                        style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
                         disabled={savedLoading}
                         onClick={() => handleToggleSave(job.companyId, 'company')}
                     >
-                        {savedLoading ? '...' : isSavedState ? '⭐ ບັນທຶກແລ້ວ' : '☆ ບັນທຶກບໍລິສັດ'}
+                        <IconStar size={16} fill={isSavedState ? 'currentColor' : 'none'} />
+                        {isSavedState ? 'ບັນທຶກແລ້ວ' : 'ບັນທຶກບໍລິສັດ'}
                     </button>
-                </div>
-            )}
-            {user?.role === 'employees' && (job.company?.email || job.company?.phone) && (
-                <div className="contact-box" style={{ marginTop: '1.25rem' }}>
-                    <strong>ຕິດຕໍ່ຈ້າງງານ</strong>
-                    {job.company?.phone && (
-                        <a href={`tel:${job.company.phone}`} className="contact-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <IconPhone size={14} /> {job.company.phone}
-                        </a>
-                    )}
-                    {job.company?.email && (
-                        <a href={`mailto:${job.company.email}`} className="contact-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <IconMail size={14} /> {job.company.email}
-                        </a>
-                    )}
                 </div>
             )}
         </>
@@ -239,6 +241,18 @@ export default function Feed({ mode, title, desc, empty }) {
 
     const renderResumeDetail = (item) => (
         <>
+            {user && user.id !== item.id && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+                    <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
+                        onClick={() => handleOpenReport('resume', item.id)}
+                    >
+                        <IconFlag size={12} /> ລາຍງານຜູ້ຊອກວຽກນີ້
+                    </button>
+                </div>
+            )}
             <div className="detail-meta">
                 <span className="tag tag-resume" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                     <IconUser size={14} /> ຜູ້ຊອກວຽກ
@@ -248,7 +262,10 @@ export default function Feed({ mode, title, desc, empty }) {
             </div>
             <p className="detail-desc">{item.resume?.summary}</p>
             <dl className="detail-dl">
+                <dt>ເພດ</dt><dd>{genderLabels[item.profile?.gender] || '-'}</dd>
                 <dt>ອາຍຸ</dt><dd>{item.profile?.age ?? '-'} ປີ</dd>
+                <dt>ສະຖານະພາບ</dt><dd>{maritalLabels[item.profile?.maritalStatus] || '-'}</dd>
+                <dt>ທີ່ຢູ່ປັດຈຸບັນ</dt><dd>{item.profile?.location || '-'}</dd>
                 {item.resume?.skills && <><dt>ທັກສະ</dt><dd>{item.resume.skills}</dd></>}
                 {item.resume?.experience && <><dt>ປະສົບການ</dt><dd>{item.resume.experience}</dd></>}
                 {item.resume?.education && <><dt>ການສຶກສາ</dt><dd>{item.resume.education}</dd></>}
@@ -258,11 +275,10 @@ export default function Feed({ mode, title, desc, empty }) {
                     <strong style={{ display: 'block', fontSize: '0.9375rem', marginBottom: '0.5rem', color: 'var(--text)' }}>ຮູບພາບ Resume / CV:</strong>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         {item.resume.resumeImages.map((img, idx) => (
-                            <a
+                            <button
                                 key={idx}
-                                href={img}
-                                target="_blank"
-                                rel="noreferrer"
+                                type="button"
+                                onClick={() => openImageInNewTab(img)}
                                 style={{
                                     display: 'block',
                                     width: '100%',
@@ -272,7 +288,9 @@ export default function Feed({ mode, title, desc, empty }) {
                                     boxShadow: 'var(--shadow-sm)',
                                     transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
                                     cursor: 'pointer',
-                                    backgroundColor: '#fff'
+                                    backgroundColor: '#fff',
+                                    padding: 0,
+                                    outline: 'none'
                                 }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.transform = 'translateY(-2px)';
@@ -290,11 +308,12 @@ export default function Feed({ mode, title, desc, empty }) {
                                     alt={`Resume / CV ${idx + 1}`}
                                     style={{ width: '100%', height: 'auto', display: 'block' }}
                                 />
-                            </a>
+                            </button>
                         ))}
                     </div>
                 </div>
             )}
+
             {canContact && (
                 <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
                     {invitedUserIds.has(item.id) ? (
@@ -334,11 +353,12 @@ export default function Feed({ mode, title, desc, empty }) {
                     <button
                         type="button"
                         className="btn btn-outline"
-                        style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap' }}
+                        style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
                         disabled={savedLoading}
                         onClick={() => handleToggleSave(item.id, 'resume')}
                     >
-                        {savedLoading ? '...' : isSavedState ? '⭐ ບັນທຶກແລ້ວ' : '☆ ບັນທຶກຜູ້ຊອກວຽກ'}
+                        <IconStar size={16} fill={isSavedState ? 'currentColor' : 'none'} />
+                        {isSavedState ? 'ບັນທຶກແລ້ວ' : 'ບັນທຶກຜູ້ຊອກວຽກ'}
                     </button>
                 </div>
             )}
@@ -419,7 +439,7 @@ export default function Feed({ mode, title, desc, empty }) {
                                             }}
                                             title="Report"
                                         >
-                                            🚩
+                                            <IconFlag size={14} style={{ color: 'var(--error)' }} />
                                         </button>
                                     )}
 

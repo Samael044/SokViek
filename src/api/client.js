@@ -47,6 +47,7 @@ export const api = {
 
   updateProfile: (profile) =>
     request('/profile', { method: 'PUT', body: JSON.stringify({ profile }) }),
+  getUserProfile: (userId) => request(`/profile/${userId}`),
 
   getFeed: (params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -54,6 +55,7 @@ export const api = {
   },
 
   getJobs: () => request('/jobs'),
+  getJob: (id) => request(`/jobs/${id}`),
 
   postJob: (job) =>
     request('/jobs', { method: 'POST', body: JSON.stringify(job) }),
@@ -93,8 +95,8 @@ export const api = {
 
   rejectUser: (id) => request(`/admin/users/${id}/reject`, { method: 'PUT' }),
 
-  updateUserRole: (id, role) =>
-    request(`/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
+  updateUserRole: (id, role, password) =>
+    request(`/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role, password }) }),
 
   deleteUser: (id, password) =>
     request(`/admin/users/${id}/delete`, { method: 'POST', body: JSON.stringify({ password }) }),
@@ -142,6 +144,11 @@ export const api = {
   cancelInterview: (id) => request(`/interviews/${id}/cancel`, { method: 'PUT' }),
 
   submitReport: (data) => request('/reports', { method: 'POST', body: JSON.stringify(data) }),
+
+  getUserReports: () => request('/admin/user-reports'),
+  resolveUserReport: (id) => request(`/admin/user-reports/${id}/resolve`, { method: 'PUT' }),
+  warnUserReport: (id) => request(`/admin/user-reports/${id}/warn`, { method: 'POST' }),
+  createAdmin: (data) => request('/admin/create-admin', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 export function calculateAge(birthDate) {
