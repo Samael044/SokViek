@@ -84,12 +84,12 @@ export default function InterviewModal({ onClose, onSuccess, preSelectedEmployee
         <div className="detail-modal-body" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {error && (
-              <div style={{ padding: '0.75rem', background: '#fef2f2', color: 'var(--error)', borderRadius: '8px', fontSize: '0.8125rem', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
+              <div style={{ padding: '0.75rem', background: 'var(--error-light, #fef2f2)', color: 'var(--error)', borderRadius: '8px', fontSize: '0.8125rem', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
                 {error}
               </div>
             )}
             {successMsg && (
-              <div style={{ padding: '0.75rem', background: '#f0fdf4', color: 'var(--success)', borderRadius: '8px', fontSize: '0.8125rem', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
+              <div style={{ padding: '0.75rem', background: 'var(--success-light, #f0fdf4)', color: 'var(--success)', borderRadius: '8px', fontSize: '0.8125rem', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
                 {successMsg}
               </div>
             )}

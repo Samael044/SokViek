@@ -179,7 +179,7 @@ export default function SavedCompanies() {
 
       {selected && (
         <DetailModal
-          title={selected.profile?.companyName || 'ລายລະອຽດບໍລິສັດ'}
+          title={selected.profile?.companyName || 'ລາຍລະອຽດບໍລິສັດ'}
           onClose={() => setSelected(null)}
         >
           {renderCompanyDetail(selected)}
