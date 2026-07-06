@@ -17,7 +17,7 @@ export default function Feed({ mode, title, desc, empty }) {
     const navigate = useNavigate();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState({ position: '' });
+    const [filters, setFilters] = useState({ position: '', jobType: '' });
     const [selected, setSelected] = useState(null);
     const [applied, setApplied] = useState(false);
     const [applyLoading, setApplyLoading] = useState(false);
@@ -42,6 +42,7 @@ export default function Feed({ mode, title, desc, empty }) {
         try {
             const query = { type: mode };
             if (params.position) query.position = params.position;
+            if (params.jobType) query.jobType = params.jobType;
             const data = await api.getFeed(query);
             setItems(data.items);
         } catch {
@@ -61,7 +62,7 @@ export default function Feed({ mode, title, desc, empty }) {
     };
 
     const handleReset = () => {
-        const empty = { position: '' };
+        const empty = { position: '', jobType: '' };
         setFilters(empty);
         loadFeed(empty);
     };
@@ -381,13 +382,26 @@ export default function Feed({ mode, title, desc, empty }) {
                 <div className="box box-search board-search">
                     <form className="search-form" onSubmit={handleSearch}>
                         <label className="search-inline-label">ຕຳແໜ່ງງານ</label>
-                        <div className="search-inline">
+                        <div className="search-inline" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                             <input
                                 className="search-inline-input"
+                                style={{ flex: 2, minWidth: '200px' }}
                                 placeholder="ຕົວຢ່າງ: Frontend Developer"
                                 value={filters.position}
-                                onChange={(e) => setFilters({ position: e.target.value })}
+                                onChange={(e) => setFilters({ ...filters, position: e.target.value })}
                             />
+                            <select
+                                className="search-inline-input"
+                                style={{ flex: 1, minWidth: '150px', background: 'white', padding: '0.625rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+                                value={filters.jobType}
+                                onChange={(e) => setFilters({ ...filters, jobType: e.target.value })}
+                            >
+                                <option value="">-- ທຸກຮູບແບບວຽກ --</option>
+                                <option value="full-time">ເຕັມເວລາ (Full-time)</option>
+                                <option value="part-time">ບໍ່ເຕັມເວລາ (Part-time)</option>
+                                <option value="contract">ສັນຍາຈ้าง (Contract)</option>
+                                <option value="remote">ເຮັດທາງໄກ (Remote)</option>
+                            </select>
                             <div className="search-inline-actions">
                                 <button type="submit" className="btn btn-primary btn-sm">ຄົ້ນຫາ</button>
                                 <button type="button" className="btn btn-outline btn-sm" onClick={handleReset}>ລ້າງ</button>

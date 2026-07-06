@@ -13,6 +13,7 @@ import AdminManage from './pages/AdminManage';
 import SavedCandidates from './pages/SavedCandidates';
 import SavedCompanies from './pages/SavedCompanies';
 import Interviews from './pages/Interviews';
+import Dashboard from './pages/Dashboard';
 
 export default function App() {
   return (
@@ -54,7 +55,14 @@ export default function App() {
             }
           />
 
-          <Route path="/dashboard" element={<Navigate to="/admin/reports" replace />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute roles={['employees', 'company', 'admin']}>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin/reports"
             element={

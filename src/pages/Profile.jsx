@@ -183,6 +183,22 @@ export default function Profile() {
     }
   };
 
+  const handleToggleJobStatus = async (job) => {
+    const newStatus = job.status === 'active' ? 'closed' : 'active';
+    const actionText = newStatus === 'closed' ? 'ປິດຮັບສະໝັກ' : 'ເປີດຮັບສະໝັກ';
+    if (!window.confirm(`ต้องการ ${actionText} ตำแหน่งนี้?`)) return;
+    try {
+      await api.updateJobStatus(job.id, newStatus);
+      setJobMessage(`${actionText} สำเร็จ`);
+      const data = await api.getJobs();
+      const mine = user.role === 'admin' ? data.jobs : data.jobs.filter((j) => j.companyId === user.id);
+      setMyJobs(mine);
+      setTimeout(() => setJobMessage(''), 3000);
+    } catch (err) {
+      setJobError(err.message);
+    }
+  };
+
   const handleViewApplicants = async (job) => {
     setSelectedJobForApplicants(job);
     setLoadingApplicants(true);
@@ -729,7 +745,12 @@ export default function Profile() {
                 {myJobs.map((job) => (
                   <li key={job.id} className="my-post-item">
                     <div>
-                      <strong>{job.title}</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <strong>{job.title}</strong>
+                        <span className={`badge ${job.status === 'active' ? 'badge-status-active' : 'badge-status-closed'}`} style={{ fontSize: '0.6875rem', padding: '0.125rem 0.5rem' }}>
+                          {job.status === 'active' ? 'ເປີດຮັບສະໝັກ' : 'ປິດຮັບສະໝັກ'}
+                        </span>
+                      </div>
                       <span>{JOB_TYPES[job.type]} · {job.location}</span>
                     </div>
                     <div className="job-actions-dropdown">
@@ -765,6 +786,16 @@ export default function Profile() {
                             }}
                           >
                             ແກ້ໄຂ
+                          </button>
+                          <button
+                            type="button"
+                            className="dropdown-menu-item"
+                            onClick={() => {
+                              handleToggleJobStatus(job);
+                              setActiveDropdownJobId(null);
+                            }}
+                          >
+                            {job.status === 'active' ? 'ປິດຮັບສະໝັກ' : 'ເປີດຮັບສະໝັກ'}
                           </button>
                           <button
                             type="button"

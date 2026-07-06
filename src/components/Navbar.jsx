@@ -79,6 +79,12 @@ export default function Navbar() {
               >
                 ລາຍການສຳພາດ
               </NavLink>
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              >
+                ແດຊບອດ
+              </NavLink>
             </>
           )}
 
@@ -96,6 +102,12 @@ export default function Navbar() {
                 className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
               >
                 ລາຍການສຳພາດ
+              </NavLink>
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              >
+                ແດຊບອດ
               </NavLink>
             </>
           )}

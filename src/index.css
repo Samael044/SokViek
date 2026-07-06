@@ -2483,7 +2483,6 @@ a:hover { color: var(--primary-dark); }
   transform: translateY(0);
 }
 
-.btn-approve:disabled,
 .btn-reject:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -2492,6 +2491,50 @@ a:hover { color: var(--primary-dark); }
   border-color: #e2e8f0;
   transform: none !important;
   box-shadow: none !important;
+}
+
+@media print {
+  .navbar, .footer, .no-print, .profile-actions, .avatar-edit-btn, .alert, button, input, select, textarea, .btn, .modal-overlay, .modal-box {
+    display: none !important;
+  }
+  
+  body, html, .app, .main-content, .page, .container {
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .box {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-bottom: 2rem !important;
+    background: transparent !important;
+  }
+  
+  .profile-card, .resume-profile-card {
+    page-break-inside: avoid;
+  }
+}
+
+/* Badge Status Styles */
+.badge-status-pending {
+  background: #fef3c7 !important;
+  color: #d97706 !important;
+}
+.badge-status-approved,
+.badge-status-active {
+  background: #d1fae5 !important;
+  color: #059669 !important;
+}
+.badge-status-rejected,
+.badge-status-closed {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
 }
 
 

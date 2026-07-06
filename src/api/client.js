@@ -63,6 +63,9 @@ export const api = {
   updateJob: (id, job) =>
     request(`/jobs/${id}`, { method: 'PUT', body: JSON.stringify(job) }),
 
+  updateJobStatus: (id, status) =>
+    request(`/jobs/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+
   deleteJob: (id) =>
     request(`/jobs/${id}`, { method: 'DELETE' }),
 
@@ -118,6 +121,11 @@ export const api = {
 
   hireApplicant: (jobId, applicationId) =>
     request(`/jobs/${jobId}/applications/${applicationId}/hire`, { method: 'PUT' }),
+
+  rejectApplicant: (jobId, applicationId) =>
+    request(`/jobs/${jobId}/applications/${applicationId}/reject`, { method: 'PUT' }),
+
+  getMyApplications: () => request('/jobs/my-applications'),
 
   getNotifications: () => request('/notifications'),
 
