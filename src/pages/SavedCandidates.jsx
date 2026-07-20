@@ -3,7 +3,7 @@ import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import DetailModal from '../components/DetailModal';
-import { IconUser, IconInbox, IconPhone, IconMail } from '../components/Icons';
+import { IconUser, IconInbox, IconPhone, IconMail, IconStar } from '../components/Icons';
 import { JOB_TYPES } from '../constants/jobTypes';
 import { formatDateDMY } from '../utils/date';
 import { openImageInNewTab } from '../utils/image';
@@ -109,53 +109,51 @@ export default function SavedCandidates() {
         </div>
       )}
 
-      <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', width: '100%' }}>
+        {invitedUserIds.has(item.id) ? (
+          <>
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{ flex: 1, cursor: 'not-allowed', color: 'var(--text-muted)' }}
+              disabled
+            >
+              ສົ່ງຄຳເຊີນແລ້ວ
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{ color: 'var(--error)', borderColor: 'var(--error)' }}
+              onClick={() => setInvitedUserIds((prev) => {
+                const next = new Set(prev);
+                next.delete(item.id);
+                return next;
+              })}
+            >
+              ຍົກເລີກ
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ flex: 1 }}
+            disabled={inviteLoading}
+            onClick={() => handleSendInvite(item.id)}
+          >
+            {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຮັບສະໝັກ'}
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-outline"
-          style={{ color: 'var(--error)', borderColor: 'var(--error)' }}
+          style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
           disabled={actionLoading}
           onClick={(e) => handleUnsave(e, item.id)}
         >
-          ເອົາອອກຈາກລາຍການບັນທຶກ
+          <IconStar size={16} fill="currentColor" />
+          {actionLoading ? '...' : 'ບັນທຶກແລ້ວ'}
         </button>
-
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          {invitedUserIds.has(item.id) ? (
-            <>
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ flex: 1, cursor: 'not-allowed', color: 'var(--text-muted)' }}
-                disabled
-              >
-                ສົ່ງຄຳເຊີນແລ້ວ
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ color: 'var(--error)', borderColor: 'var(--error)' }}
-                onClick={() => setInvitedUserIds((prev) => {
-                  const next = new Set(prev);
-                  next.delete(item.id);
-                  return next;
-                })}
-              >
-                ຍົກເລີກ
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary"
-              style={{ flex: 1 }}
-              disabled={inviteLoading}
-              onClick={() => handleSendInvite(item.id)}
-            >
-              {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຕ້ອງການຈ້າງ'}
-            </button>
-          )}
-        </div>
       </div>
     </>
   );

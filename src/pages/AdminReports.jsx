@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import DetailModal from '../components/DetailModal';
+import { JOB_TYPES } from '../constants/jobTypes';
 
 const genderLabels = { male: 'ຊາຍ', female: 'ຍິງ', other: 'ອື່ນໆ' };
 const maritalLabels = { single: 'ໂສດ', dating: 'ມີແຟນແລ້ວ', married: 'ແຕ່ງງານແລ້ວ' };
@@ -16,6 +17,56 @@ const targetLabels = {
   job: 'ປະກາດງານ',
   resume: 'ເຣຊູເມ / ຜູ້ຊອກວຽກ',
   user: 'ຜູ້ໃຊ້',
+};
+
+const activityTypeLabels = {
+  job_posted: 'ປະກາດວຽກ',
+  job_applied: 'ສະໝັກວຽກ',
+  job_cancel_applied: 'ຍົກເລີກສະໝັກວຽກ',
+  resume_posted: 'ປະກາດ Resume',
+};
+
+const formatActivityMessage = (r) => {
+  if (!r) return '';
+  const { type, message, user, jobTitle, companyName } = r;
+
+  const getUserPrefixAndName = (u) => {
+    if (!u || !u.profile) return '';
+    if (u.role === 'company') {
+      return u.profile.companyName || '';
+    }
+    const prefix = u.profile.gender === 'male' ? 'ທ້າວ ' : u.profile.gender === 'female' ? 'ນາງ ' : '';
+    const firstName = u.profile.firstName || '';
+    const lastName = u.profile.lastName || '';
+    return `${prefix}${firstName} ${lastName}`.trim();
+  };
+
+  const userName = getUserPrefixAndName(user) || 'ຜູ້ໃຊ້';
+
+  if (type === 'job_applied') {
+    const jobText = jobTitle || message.replace('User applied for job:', '').split(' of company:')[0].trim();
+    const companyText = companyName ? ` ຂອງບໍລິສັດ ${companyName}` : '';
+    return `${userName} ສະໝັກວຽກ: ${jobText}${companyText}`;
+  }
+
+  if (type === 'job_posted') {
+    const jobText = jobTitle || message.replace('New job posted:', '').split(' by company:')[0].trim();
+    const companyText = companyName ? ` ຂອງບໍລິສັດ ${companyName}` : '';
+    return `${userName} ປະກາດວຽກໃໝ່: ${jobText}${companyText}`;
+  }
+
+  if (type === 'job_cancel_applied') {
+    const jobText = jobTitle || message.replace('User canceled application for job:', '').split(' of company:')[0].trim();
+    const companyText = companyName ? ` ຂອງບໍລິສັດ ${companyName}` : '';
+    return `${userName} ຍົກເລີກການສະໝັກວຽກ: ${jobText}${companyText}`;
+  }
+
+  if (type === 'resume_posted') {
+    const resumeText = message.includes('posted Resume:') ? message.split('posted Resume:')[1].trim() : message;
+    return `${userName} ໄດ້ປະກາດ Resume: ${resumeText}`;
+  }
+
+  return message;
 };
 
 export default function AdminReports() {
@@ -90,7 +141,9 @@ export default function AdminReports() {
     <>
       <div className="detail-meta">
         <span className="tag tag-job">ປະກາດງານ</span>
-        <span className="tag">{job.type}</span>
+        {job.type && job.type.split(',').map((t, idx) => (
+          <span key={idx} className="tag">{JOB_TYPES[t.trim()] || t.trim()}</span>
+        ))}
       </div>
       <p className="detail-desc">{job.description}</p>
       <dl className="detail-dl">
@@ -132,7 +185,9 @@ export default function AdminReports() {
       <>
         <div className="detail-meta">
           <span className="tag tag-resume">ຜູ້ຊອກວຽກ</span>
-          {item.resume?.jobType && <span className="tag">{item.resume.jobType}</span>}
+          {item.resume?.jobType && item.resume.jobType.split(',').map((t, idx) => (
+            <span key={idx} className="tag">{JOB_TYPES[t.trim()] || t.trim()}</span>
+          ))}
           <span>{item.resume?.desiredPosition || '-'}</span>
         </div>
         <p className="detail-desc">{item.resume?.summary || 'ບໍ່ມີບົດສະຫຼຸບ'}</p>
@@ -200,8 +255,8 @@ export default function AdminReports() {
                   {reports.map((r) => (
                     <tr key={r.id}>
                       <td>{new Date(r.createdAt).toLocaleString('lo-LA')}</td>
-                      <td><span className="badge">{r.type}</span></td>
-                      <td>{r.message}</td>
+                      <td><span className="badge">{activityTypeLabels[r.type] || r.type}</span></td>
+                      <td>{formatActivityMessage(r)}</td>
                       <td>
                         {r.user?.profile?.companyName ||
                           `${r.user?.profile?.firstName || ''} ${r.user?.profile?.lastName || ''}`.trim() ||

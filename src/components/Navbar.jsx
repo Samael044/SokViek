@@ -95,7 +95,7 @@ export default function Navbar() {
                 to="/saved-companies"
                 className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
               >
-                ບໍລິສັດທີ່ບັນທຶກ
+                ວຽກທີ່ບັນທຶກ
               </NavLink>
               <NavLink
                 to="/interviews"

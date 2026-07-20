@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api, calculateAge, fileToBase64 } from '../api/client';
 import BirthDateInput from '../components/BirthDateInput';
@@ -15,6 +15,7 @@ const genderLabels = { male: 'ຊາຍ', female: 'ຍິງ', other: 'ອື່
 export default function Profile() {
   const { user, updateUser } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [editingResume, setEditingResume] = useState(false);
   const [form, setForm] = useState({});
@@ -50,6 +51,21 @@ export default function Profile() {
   const [activeDropdownJobId, setActiveDropdownJobId] = useState(null);
   const [hireLoading, setHireLoading] = useState(false);
   const [hiredApplicationIds, setHiredApplicationIds] = useState(new Set());
+  const [rejectLoading, setRejectLoading] = useState(false);
+  const [rejectedApplicationIds, setRejectedApplicationIds] = useState(new Set());
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [interviewApplicantTarget, setInterviewApplicantTarget] = useState(null);
+  const [interviewLoading, setInterviewLoading] = useState(false);
+  const [interviewForm, setInterviewForm] = useState({
+    interviewerName: '',
+    phone: '',
+    date: '',
+    time: '09:00',
+    type: 'onsite',
+    location: '',
+    meetingLink: '',
+    notes: '',
+  });
 
   useEffect(() => {
     const handleClose = () => setActiveDropdownJobId(null);
@@ -125,11 +141,102 @@ export default function Profile() {
       setHireLoading(true);
       await api.hireApplicant(selectedJobForApplicants.id, applicant.id);
       setHiredApplicationIds((prev) => new Set([...prev, applicant.id]));
-      alert(`ສົ່ງການສະເໜີຈ້າງໃຫ້ ${applicant.user.profile ? `${applicant.user.profile.firstName} ${applicant.user.profile.lastName}` : applicant.user.email} ສຳເລັດ!`);
+      setRejectedApplicationIds((prev) => {
+        const next = new Set(prev);
+        next.delete(applicant.id);
+        return next;
+      });
+      setSelectedApplicantForDetail((prev) => prev ? { ...prev, status: 'approved' } : null);
+      alert(`ສົ່ງຄຳເຊີນຕິດຕໍ່ສຳພາດງານໃຫ້ ${applicant.user.profile ? `${applicant.user.profile.firstName} ${applicant.user.profile.lastName}` : applicant.user.email} ສຳເລັດ!`);
     } catch (err) {
       alert(err.message);
     } finally {
       setHireLoading(false);
+    }
+  };
+
+  const handleReject = async (applicant) => {
+    if (!selectedJobForApplicants) return;
+    try {
+      setRejectLoading(true);
+      await api.rejectApplicant(selectedJobForApplicants.id, applicant.id);
+      setRejectedApplicationIds((prev) => new Set([...prev, applicant.id]));
+      setHiredApplicationIds((prev) => {
+        const next = new Set(prev);
+        next.delete(applicant.id);
+        return next;
+      });
+      setSelectedApplicantForDetail((prev) => prev ? { ...prev, status: 'rejected' } : null);
+      alert(`ຍົກເລີກຜູ້ສະໝັກ ${applicant.user.profile ? `${applicant.user.profile.firstName} ${applicant.user.profile.lastName}` : applicant.user.email} ສຳເລັດ!`);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setRejectLoading(false);
+    }
+  };
+
+  const openInterviewForm = (applicant) => {
+    const today = new Date().toISOString().split('T')[0];
+    setInterviewApplicantTarget(applicant);
+    setInterviewForm({
+      interviewerName: user?.profile?.firstName ? `${user.profile.firstName} ${user.profile.lastName}` : (user?.profile?.companyName || 'ບໍລິສັດ'),
+      phone: user?.profile?.phone || user?.email || '-',
+      date: today,
+      time: '09:00',
+      type: 'onsite',
+      location: user?.profile?.location || [user?.profile?.village, user?.profile?.district, user?.profile?.province].filter(Boolean).join(', ') || 'ບໍລິສັດ',
+      meetingLink: '',
+      notes: '',
+    });
+    setShowInterviewModal(true);
+  };
+
+  const handleSubmitInterview = async (e) => {
+    e.preventDefault();
+    if (!interviewApplicantTarget || !selectedJobForApplicants) return;
+    try {
+      setInterviewLoading(true);
+
+      const today = new Date().toISOString().split('T')[0];
+      const finalDate = interviewForm.date || today;
+      const finalTime = interviewForm.time || '09:00';
+      const finalInterviewerName = interviewForm.interviewerName || (user?.profile?.firstName ? `${user.profile.firstName} ${user.profile.lastName}` : 'ບໍລິສັດ');
+      const finalPhone = interviewForm.phone || user?.profile?.phone || user?.email || '-';
+      const defaultLoc = user?.profile?.location || [user?.profile?.village, user?.profile?.district, user?.profile?.province].filter(Boolean).join(', ') || 'ບໍລິສັດ';
+      const finalLocation = interviewForm.type === 'online' ? (interviewForm.meetingLink || 'Online Meeting') : (interviewForm.location || defaultLoc);
+
+      const notesText = `ຜູ້ສຳພາດ: ${finalInterviewerName} | ເບີໂທ: ${finalPhone}${interviewForm.notes ? `\nໝາຍເຫດ: ${interviewForm.notes}` : ''}`;
+
+      const targetEmployeeId = interviewApplicantTarget.userId || interviewApplicantTarget.user?.id || interviewApplicantTarget.user_id;
+
+      await api.createInterview({
+        jobId: selectedJobForApplicants.id,
+        employeeId: targetEmployeeId,
+        date: finalDate,
+        time: finalTime,
+        location: finalLocation,
+        type: interviewForm.type || 'onsite',
+        meetingLink: interviewForm.meetingLink || null,
+        notes: notesText,
+      });
+
+      await api.hireApplicant(selectedJobForApplicants.id, interviewApplicantTarget.id);
+
+      setHiredApplicationIds((prev) => new Set([...prev, interviewApplicantTarget.id]));
+      setRejectedApplicationIds((prev) => {
+        const next = new Set(prev);
+        next.delete(interviewApplicantTarget.id);
+        return next;
+      });
+      setSelectedApplicantForDetail((prev) => prev ? { ...prev, status: 'approved' } : null);
+
+      setShowInterviewModal(false);
+      setSelectedApplicantForDetail(null);
+      navigate('/interviews');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setInterviewLoading(false);
     }
   };
 
@@ -537,14 +644,34 @@ export default function Profile() {
                   </div>
                   <div className="form-group">
                     <label>ປະເພດວຽກ *</label>
-                    <select
-                      value={resumeForm.jobType}
-                      onChange={(e) => setResumeForm({ ...resumeForm, jobType: e.target.value })}
-                    >
-                      {JOB_TYPE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                    <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginTop: '0.5rem', background: 'var(--bg)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                      {JOB_TYPE_OPTIONS.map((opt) => {
+                        const selectedTypes = resumeForm.jobType ? resumeForm.jobType.split(',').map(t => t.trim()) : [];
+                        const isChecked = selectedTypes.includes(opt.value);
+
+                        const handleCheckboxChange = (e) => {
+                          let nextTypes;
+                          if (e.target.checked) {
+                            nextTypes = [...selectedTypes, opt.value];
+                          } else {
+                            nextTypes = selectedTypes.filter(t => t !== opt.value);
+                          }
+                          setResumeForm({ ...resumeForm, jobType: nextTypes.join(',') });
+                        };
+
+                        return (
+                          <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9375rem', fontWeight: '500' }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={handleCheckboxChange}
+                              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                            />
+                            {opt.label}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
                 <div className="form-group">
@@ -616,7 +743,7 @@ export default function Profile() {
             ) : resumeForm.published ? (
               <dl className="resume-view">
                 <dt>ຕຳແໜ່ງທີ່ຕ້ອງການ</dt><dd>{resumeForm.desiredPosition}</dd>
-                <dt>ປະເພດວຽກ</dt><dd>{JOB_TYPES[resumeForm.jobType]}</dd>
+                <dt>ປະເພດວຽກ</dt><dd>{resumeForm.jobType ? resumeForm.jobType.split(',').map(t => JOB_TYPES[t.trim()] || t.trim()).join(', ') : '-'}</dd>
                 <dt>ແນະນຳຕົວ</dt><dd>{resumeForm.summary}</dd>
                 {resumeForm.skills && <><dt>ທັກສະ</dt><dd>{resumeForm.skills}</dd></>}
                 {resumeForm.experience && <><dt>ປະສົບການ</dt><dd>{resumeForm.experience}</dd></>}
@@ -708,12 +835,35 @@ export default function Profile() {
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>ປະເພດວຽກ</label>
-                  <select value={jobForm.type} onChange={(e) => setJobForm({ ...jobForm, type: e.target.value })}>
-                    {JOB_TYPE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                  <label>ປະເພດວຽກ *</label>
+                  <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginTop: '0.5rem', background: 'var(--bg)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    {JOB_TYPE_OPTIONS.map((opt) => {
+                      const selectedTypes = jobForm.type ? jobForm.type.split(',').map(t => t.trim()) : [];
+                      const isChecked = selectedTypes.includes(opt.value);
+
+                      const handleCheckboxChange = (e) => {
+                        let nextTypes;
+                        if (e.target.checked) {
+                          nextTypes = [...selectedTypes, opt.value];
+                        } else {
+                          nextTypes = selectedTypes.filter(t => t !== opt.value);
+                        }
+                        setJobForm({ ...jobForm, type: nextTypes.join(',') });
+                      };
+
+                      return (
+                        <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9375rem', fontWeight: '500' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={handleCheckboxChange}
+                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                          />
+                          {opt.label}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="form-group">
                   <label>ຄຸນສົມບັດ</label>
@@ -751,7 +901,7 @@ export default function Profile() {
                           {job.status === 'active' ? 'ເປີດຮັບສະໝັກ' : 'ປິດຮັບສະໝັກ'}
                         </span>
                       </div>
-                      <span>{JOB_TYPES[job.type]} · {job.location}</span>
+                      <span>{job.type ? job.type.split(',').map(t => JOB_TYPES[t.trim()] || t.trim()).join(', ') : '-'} · {job.location}</span>
                     </div>
                     <div className="job-actions-dropdown">
                       <button
@@ -862,12 +1012,22 @@ export default function Profile() {
                           <IconUser size={22} style={{ color: 'var(--text-muted)' }} />
                         )}
                       </div>
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{app.user.profile ? `${app.user.profile.firstName} ${app.user.profile.lastName}` : app.user.email}</h4>
                         {app.user.resume?.desiredPosition && (
                           <span className="tag tag-sm" style={{ marginTop: '0.25rem', display: 'inline-block' }}>{app.user.resume.desiredPosition}</span>
                         )}
                       </div>
+                      {(hiredApplicationIds.has(app.id) || app.status === 'approved') && (
+                        <span className="tag tag-sm" style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid #10b981', marginLeft: 'auto' }}>
+                          ຮັບສະໝັກແລ້ວ
+                        </span>
+                      )}
+                      {(rejectedApplicationIds.has(app.id) || app.status === 'rejected') && (
+                        <span className="tag tag-sm" style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid #ef4444', marginLeft: 'auto' }}>
+                          ຍົກເລີກແລ້ວ
+                        </span>
+                      )}
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem' }}>
@@ -955,11 +1115,11 @@ export default function Profile() {
                         {[selectedApplicantForDetail.user.profile?.village, selectedApplicantForDetail.user.profile?.district, selectedApplicantForDetail.user.profile?.province].filter(Boolean).join(', ') || selectedApplicantForDetail.user.profile.location}
                       </span>
                     )}
-                    {selectedApplicantForDetail.user.resume?.jobType && (
-                      <span className="applicant-meta-chip applicant-meta-chip--accent">
-                        {JOB_TYPES[selectedApplicantForDetail.user.resume.jobType]}
+                    {selectedApplicantForDetail.user.resume?.jobType && selectedApplicantForDetail.user.resume.jobType.split(',').map((t, idx) => (
+                      <span key={idx} className="applicant-meta-chip applicant-meta-chip--accent">
+                        {JOB_TYPES[t.trim()] || t.trim()}
                       </span>
-                    )}
+                    ))}
                   </div>
                 </div>
               </div>
@@ -1004,12 +1164,6 @@ export default function Profile() {
                         <td className="applicant-info-value">{selectedApplicantForDetail.user.profile.phone}</td>
                       </tr>
                     )}
-                    {/* {(selectedApplicantForDetail.user.email || selectedApplicantForDetail.user.phone) && (
-                      <tr>
-                        <td className="applicant-info-label">ອີເມວ/ເບີ</td>
-                        <td className="applicant-info-value">{selectedApplicantForDetail.user.email || selectedApplicantForDetail.user.phone}</td>
-                      </tr>
-                    )} */}
                   </tbody>
                 </table>
               </div>
@@ -1035,7 +1189,9 @@ export default function Profile() {
                       {selectedApplicantForDetail.user.resume.jobType && (
                         <tr>
                           <td className="applicant-info-label">ປະເພດວຽກ</td>
-                          <td className="applicant-info-value">{JOB_TYPES[selectedApplicantForDetail.user.resume.jobType]}</td>
+                          <td className="applicant-info-value">
+                            {selectedApplicantForDetail.user.resume.jobType.split(',').map(t => JOB_TYPES[t.trim()] || t.trim()).join(', ')}
+                          </td>
                         </tr>
                       )}
                       {selectedApplicantForDetail.user.resume.skills && (
@@ -1089,56 +1245,164 @@ export default function Profile() {
                   </div>
                 </div>
               )}
-              {/* ── ຕ້ອງການຈ້າງ ── */}
+
+              {/* ── ຕິດຕໍ່ສຳພາດງານ / ຍົກເລີກ ── */}
               <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
-                {hiredApplicationIds.has(selectedApplicantForDetail.id) ? (
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    className={
+                      hiredApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'approved'
+                        ? 'btn btn-outline'
+                        : 'btn btn-primary'
+                    }
+                    style={{
+                      flex: 1,
+                      padding: '0.85rem',
+                      fontSize: '1rem',
+                      ...(hiredApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'approved'
+                        ? { color: '#10b981', borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.08)' }
+                        : {}),
+                    }}
+                    disabled={hireLoading || rejectLoading || hiredApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'approved'}
+                    onClick={() => openInterviewForm(selectedApplicantForDetail)}
+                  >
+                    {hireLoading ? 'ກຳລັງສົ່ງ...' : (hiredApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'approved' ? '✓ ຕິດຕໍ່ສຳພາດແລ້ວ' : 'ຕິດຕໍ່ສຳພາດງານ')}
+                  </button>
+
                   <button
                     type="button"
                     className="btn btn-outline"
-                    style={{ width: '100%', padding: '0.85rem', fontSize: '1rem' }}
-                    disabled
+                    style={{
+                      flex: 1,
+                      padding: '0.85rem',
+                      fontSize: '1rem',
+                      color: 'var(--error)',
+                      borderColor: 'var(--error)',
+                      ...(rejectedApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'rejected'
+                        ? { backgroundColor: 'rgba(239, 68, 68, 0.08)' }
+                        : {}),
+                    }}
+                    disabled={hireLoading || rejectLoading || rejectedApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'rejected'}
+                    onClick={() => handleReject(selectedApplicantForDetail)}
                   >
-                    ສົ່ງການສະເໜີຈ້າງແລ້ວ
+                    {rejectLoading ? 'ກຳລັງສົ່ງ...' : (rejectedApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'rejected' ? '✕ ຍົກເລີກແລ້ວ' : 'ຍົກເລີກ')}
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    style={{ width: '100%', padding: '0.85rem', fontSize: '1rem' }}
-                    disabled={hireLoading}
-                    onClick={() => handleHire(selectedApplicantForDetail)}
-                  >
-                    {hireLoading ? 'ກຳລັງສົ່ງ...' : 'ຕ້ອງການຈ້າງ'}
-                  </button>
-                )}
+                </div>
               </div>
 
-              {/* ── ຕິດຕໍ່ຈ້າງງານ ── */}
-              {(selectedApplicantForDetail.user.profile?.phone || selectedApplicantForDetail.user.email) && (
-                <div className="contact-box" style={{ marginTop: '1rem' }}>
-                  <strong>ຕິດຕໍ່ຈ້າງງານ</strong>
-                  {selectedApplicantForDetail.user.profile?.phone && (
-                    <a
-                      href={`tel:${selectedApplicantForDetail.user.profile.phone}`}
-                      className="contact-link"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
-                    >
-                      <IconPhone size={14} /> {selectedApplicantForDetail.user.profile.phone}
-                    </a>
-                  )}
-                  {selectedApplicantForDetail.user.email && (
-                    <a
-                      href={`mailto:${selectedApplicantForDetail.user.email}`}
-                      className="contact-link"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
-                    >
-                      <IconMail size={14} /> {selectedApplicantForDetail.user.email}
-                    </a>
-                  )}
+            </div>
+          </DetailModal>
+        )}
+
+        {showInterviewModal && (
+          <DetailModal
+            title={`ນັດສຳພາດງານ - ${interviewApplicantTarget?.user?.profile
+              ? `${interviewApplicantTarget.user.profile.firstName} ${interviewApplicantTarget.user.profile.lastName}`
+              : interviewApplicantTarget?.user?.email}`}
+            onClose={() => setShowInterviewModal(false)}
+          >
+            <form onSubmit={handleSubmitInterview} className="profile-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>ຊື່ຜູ້ສຳພາດ / ຜູ້ປະສານງານ</label>
+                  <input
+                    value={interviewForm.interviewerName}
+                    onChange={(e) => setInterviewForm({ ...interviewForm, interviewerName: e.target.value })}
+                    placeholder="ຕົວຢ່າງ: ທ່ານ ສົມໄຊ (HR Manager)"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>ເບີໂທຕິດຕໍ່</label>
+                  <input
+                    value={interviewForm.phone}
+                    onChange={(e) => setInterviewForm({ ...interviewForm, phone: e.target.value })}
+                    placeholder="ຕົວຢ່າງ: 020 5555xxxx"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>ວັນທີສຳພາດ</label>
+                  <input
+                    type="date"
+                    value={interviewForm.date}
+                    onChange={(e) => setInterviewForm({ ...interviewForm, date: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>ເວລາສຳພາດ</label>
+                  <input
+                    type="time"
+                    value={interviewForm.time}
+                    onChange={(e) => setInterviewForm({ ...interviewForm, time: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>ຮູບແບບການສຳພາດ</label>
+                <select
+                  value={interviewForm.type}
+                  onChange={(e) => setInterviewForm({ ...interviewForm, type: e.target.value })}
+                  style={{ width: '100%', padding: '0.625rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)' }}
+                >
+                  <option value="onsite">ຢູ່ບໍລິສັດ (Onsite)</option>
+                  <option value="online">ອອນລາຍ (Online Meeting)</option>
+                </select>
+              </div>
+
+              {interviewForm.type === 'online' ? (
+                <div className="form-group">
+                  <label>ລິ້ງປະຊຸມອອນລາຍ (Google Meet / Zoom)</label>
+                  <input
+                    type="url"
+                    value={interviewForm.meetingLink}
+                    onChange={(e) => setInterviewForm({ ...interviewForm, meetingLink: e.target.value })}
+                    placeholder="https://meet.google.com/..."
+                  />
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label>ສະຖານທີ່ສຳພາດ</label>
+                  <input
+                    value={interviewForm.location}
+                    onChange={(e) => setInterviewForm({ ...interviewForm, location: e.target.value })}
+                    placeholder="ຕົວຢ່າງ: ຫ້ອງປະຊຸມ B, ຊັ້ນ 3, ອາຄານ XYZ..."
+                  />
                 </div>
               )}
 
-            </div>
+              <div className="form-group">
+                <label>ໝາຍເຫດ / ເອກະສານທີ່ຕ້ອງກຽມມາ</label>
+                <textarea
+                  rows={3}
+                  value={interviewForm.notes}
+                  onChange={(e) => setInterviewForm({ ...interviewForm, notes: e.target.value })}
+                  placeholder="ຕົວຢ່າງ: ກະລຸນານຳ Portfolio ແລະ CV ມາພ້ອມ..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ flex: 1 }}
+                  onClick={() => setShowInterviewModal(false)}
+                >
+                  ຍົກເລີກ
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                  disabled={interviewLoading}
+                >
+                  {interviewLoading ? 'ກຳລັງບັນທຶກ...' : 'ຍືນຍັນການນັດສຳພາດ'}
+                </button>
+              </div>
+            </form>
           </DetailModal>
         )}
 

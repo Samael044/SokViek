@@ -37,6 +37,7 @@ export default function AdminManage() {
   });
   const [adminFormError, setAdminFormError] = useState('');
   const [adminFormLoading, setAdminFormLoading] = useState(false);
+  const [adminPwVisible, setAdminPwVisible] = useState(false);
 
   // Password confirmation modal
   const [pwModal, setPwModal] = useState(null); // { userId }
@@ -63,6 +64,7 @@ export default function AdminManage() {
       showToast('ສ້າງບັນຊີ Admin ສຳເລັດແລ້ວ');
       setShowCreateAdmin(false);
       setAdminForm({ firstName: '', lastName: '', email: '', phone: '', password: '' });
+      setAdminPwVisible(false);
       await loadData();
     } catch (err) {
       setAdminFormError(err.message || 'ເກີດຂໍ້ຜິດພາດ');
@@ -529,8 +531,8 @@ export default function AdminManage() {
                   <th>ອີເມວ / ເບີ</th>
                   <th>ສະຖານະບັນຊີ</th>
                   <th>ສິດປັດຈຸບັນ</th>
-                  <th>ປ່ຽນສິດ</th>
-                  <th>ການດຳເນີນການ</th>
+                  <th>ກຳນົດສິດ</th>
+
                 </tr>
               </thead>
               <tbody>
@@ -556,16 +558,19 @@ export default function AdminManage() {
                       </span>
                     </td>
                     <td>
-                      <select
-                        className="role-select"
-                        value={roleEdits[u.id] ?? u.role ?? ''}
-                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <option value="admin">ຜູ້ດູແລລະບົບ</option>
-                        <option value="company">ບໍລິສັດ</option>
-                        <option value="employees">ຜູ້ຊອກວຽກ</option>
-                      </select>
+                      <div className="role-select-wrap">
+                        <select
+                          className="role-select"
+                          value={roleEdits[u.id] ?? u.role ?? ''}
+                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <option value="admin">ຜູ້ດູແລລະບົບ</option>
+                          <option value="company">ບໍລິສັດ</option>
+                          <option value="employees">ຜູ້ຊອກວຽກ</option>
+                        </select>
+                        <span className="role-select-arrow">▼</span>
+                      </div>
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
@@ -605,8 +610,8 @@ export default function AdminManage() {
             selectedUser.role === 'company'
               ? 'ຂໍ້ມູນບໍລິສັດ'
               : selectedUser.role === 'employees'
-              ? 'ຂໍ້ມູນຜູ້ຊອກວຽກ'
-              : 'ຂໍ້ມູນຜູ້ໃຊ້ງານ'
+                ? 'ຂໍ້ມູນຜູ້ຊອກວຽກ'
+                : 'ຂໍ້ມູນຜູ້ໃຊ້ງານ'
           }
           onClose={() => setSelectedUser(null)}
         >
@@ -628,7 +633,7 @@ export default function AdminManage() {
                   : 'ກະລຸນາປ້ອນລະຫັດຜ່ານຂອງທ່ານເພື່ອຢືນຢັນການປ່ຽນສິດຜູ້ໃຊ້'}
               </p>
             </div>
-            
+
             <div className="pw-modal-body">
               <div className="pw-input-wrap">
                 <input
@@ -687,7 +692,7 @@ export default function AdminManage() {
       {showCreateAdmin && (
         <DetailModal
           title="ເພີ່ມ Admin ໃໝ່"
-          onClose={() => setShowCreateAdmin(false)}
+          onClose={() => { setShowCreateAdmin(false); setAdminPwVisible(false); }}
         >
           <form onSubmit={handleCreateAdminSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem 0' }}>
             {adminFormError && (
@@ -695,7 +700,7 @@ export default function AdminManage() {
                 {adminFormError}
               </div>
             )}
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>ຊື່ (First Name) *</label>
@@ -743,14 +748,25 @@ export default function AdminManage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>ລະຫັດຜ່ານ (Password) *</label>
-              <input
-                type="password"
-                placeholder="ຢ່າງໜ້ອຍ 6 ຕົວອັກສອນ"
-                style={{ padding: '0.625rem', borderRadius: '8px', border: '1px solid var(--border)', width: '100%' }}
-                value={adminForm.password}
-                onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
-                required
-              />
+              <div className="password-input-wrap">
+                <input
+                  type={adminPwVisible ? 'text' : 'password'}
+                  placeholder="ຢ່າງໜ້ອຍ 6 ຕົວອັກສອນ"
+                  style={{ padding: '0.625rem', paddingRight: '2.75rem', borderRadius: '8px', border: '1px solid var(--border)', width: '100%' }}
+                  value={adminForm.password}
+                  onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setAdminPwVisible((v) => !v)}
+                  tabIndex={-1}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}
+                >
+                  {adminPwVisible ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+                </button>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
@@ -758,7 +774,7 @@ export default function AdminManage() {
                 type="button"
                 className="btn btn-outline"
                 style={{ flex: 1 }}
-                onClick={() => setShowCreateAdmin(false)}
+                onClick={() => { setShowCreateAdmin(false); setAdminPwVisible(false); }}
                 disabled={adminFormLoading}
               >
                 ຍົກເລີກ

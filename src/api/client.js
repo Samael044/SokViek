@@ -146,9 +146,16 @@ export const api = {
   unsaveCompany: (companyId) => request(`/saved-companies/${companyId}`, { method: 'DELETE' }),
   getSavedCompanyStatus: (companyId) => request(`/saved-companies/${companyId}/status`),
 
+  getSavedJobs: () => request('/saved-companies/jobs/list'),
+  saveJob: (jobId) => request(`/saved-companies/jobs/${jobId}`, { method: 'POST' }),
+  unsaveJob: (jobId) => request(`/saved-companies/jobs/${jobId}`, { method: 'DELETE' }),
+  getSavedJobStatus: (jobId) => request(`/saved-companies/jobs/${jobId}/status`),
+
   getInterviews: () => request('/interviews'),
   getMyInterviews: () => request('/interviews/mine'),
   createInterview: (data) => request('/interviews', { method: 'POST', body: JSON.stringify(data) }),
+  updateInterview: (id, data) => request(`/interviews/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  updateInterviewStatus: (id, status) => request(`/interviews/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
   cancelInterview: (id) => request(`/interviews/${id}/cancel`, { method: 'PUT' }),
 
   submitReport: (data) => request('/reports', { method: 'POST', body: JSON.stringify(data) }),

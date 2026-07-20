@@ -30,7 +30,7 @@ export default function Home() {
   const [savedLoading, setSavedLoading] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
 
-  const canContact = user?.role === 'company' || user?.role === 'admin';
+  const canContact = !user || user.role === 'company' || user.role === 'admin';
 
   useEffect(() => {
     async function load() {
@@ -47,11 +47,12 @@ export default function Home() {
   }, []);
 
   const handleTileClick = async (item) => {
+    setSelected(item);
     if (!user) {
-      navigate('/login');
+      setApplied(false);
+      setIsSavedState(false);
       return;
     }
-    setSelected(item);
     if (item.type === 'job' && user.role === 'employees') {
       try {
         const res = await api.checkApplied(item.data.id);
@@ -151,13 +152,19 @@ export default function Home() {
 
   const renderJobDetail = (job) => (
     <>
-      {user && user.id !== job.companyId && (
+      {(!user || user.id !== job.companyId) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
           <button
             type="button"
             className="btn btn-outline btn-sm"
             style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
-            onClick={() => handleOpenReport('job', job.id)}
+            onClick={() => {
+              if (!user) {
+                navigate('/login');
+                return;
+              }
+              handleOpenReport('job', job.id);
+            }}
           >
             <IconFlag size={12} /> ລາຍງານປະກາດນີ້
           </button>
@@ -179,7 +186,7 @@ export default function Home() {
         <dd>{new Date(job.createdAt).toLocaleDateString('lo-LA')}</dd>
         {job.company?.about && <><dt>ກ່ຽວກັບບໍລິສັດ</dt><dd>{job.company.about}</dd></>}
       </dl>
-      {user?.role === 'employees' && (
+      {(!user || user.role === 'employees') && (
         <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
           {applied ? (
             <>
@@ -207,7 +214,13 @@ export default function Home() {
               className="btn btn-primary"
               style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
               disabled={applyLoading}
-              onClick={() => handleApply(job.id)}
+              onClick={() => {
+                if (!user) {
+                  navigate('/login');
+                  return;
+                }
+                handleApply(job.id);
+              }}
             >
               {applyLoading ? 'ກຳລັງສະໝັກ...' : 'ສະໝັກງານ'}
             </button>
@@ -217,10 +230,15 @@ export default function Home() {
             className="btn btn-outline"
             style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
             disabled={savedLoading}
-            onClick={() => handleToggleSave(job.companyId, 'company')}
+            onClick={() => {
+              if (!user) {
+                navigate('/login');
+                return;
+              }
+              handleToggleSave(job.companyId, 'company');
+            }}
           >
-            <IconStar size={16} fill={isSavedState ? 'currentColor' : 'none'} />
-            {isSavedState ? 'ບັນທຶກແລ້ວ' : 'ບັນທຶກບໍລິສັດ'}
+            {savedLoading ? '...' : (isSavedState ? 'ລົບການບັນທຶກ' : 'ບັນທຶກ')}
           </button>
         </div>
       )}
@@ -229,13 +247,19 @@ export default function Home() {
 
   const renderResumeDetail = (item) => (
     <>
-      {user && user.id !== item.id && (
+      {(!user || user.id !== item.id) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
           <button
             type="button"
             className="btn btn-outline btn-sm"
             style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
-            onClick={() => handleOpenReport('resume', item.id)}
+            onClick={() => {
+              if (!user) {
+                navigate('/login');
+                return;
+              }
+              handleOpenReport('resume', item.id);
+            }}
           >
             <IconFlag size={12} /> ລາຍງານຜູ້ຊອກວຽກນີ້
           </button>
@@ -256,7 +280,7 @@ export default function Home() {
         <dt>ທີ່ຢູ່ປັດຈຸບັນ</dt><dd>{item.profile?.location || '-'}</dd>
         {item.resume?.skills && <><dt>ທັກສະ</dt><dd>{item.resume.skills}</dd></>}
         {item.resume?.experience && <><dt>ປະສົບການ</dt><dd>{item.resume.experience}</dd></>}
-        {item.resume?.education && <><dt>ການສຶກສາ</dt><dd>{item.resume.education}</dd></>}
+        {item.resume?.education && <><dt>การສຶກສາ</dt><dd>{item.resume.education}</dd></>}
       </dl>
       {item.resume?.resumeImages && item.resume.resumeImages.length > 0 && (
         <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginBottom: '1rem' }}>
@@ -333,19 +357,31 @@ export default function Home() {
               className="btn btn-primary"
               style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
               disabled={inviteLoading}
-              onClick={() => handleSendInvite(item.id)}
+              onClick={() => {
+                if (!user) {
+                  navigate('/login');
+                  return;
+                }
+                handleSendInvite(item.id);
+              }}
             >
-              {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຕ້ອງການຈ້າງ'}
+              {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຮັບສະໝັກ'}
             </button>
           )}
           <button
             type="button"
             className="btn btn-outline"
-            style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap' }}
+            style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
             disabled={savedLoading}
-            onClick={() => handleToggleSave(item.id, 'resume')}
+            onClick={() => {
+              if (!user) {
+                navigate('/login');
+                return;
+              }
+              handleToggleSave(item.id, 'resume');
+            }}
           >
-            {savedLoading ? '...' : isSavedState ? '⭐ ບັນທຶກແລ້ວ' : '☆ ບັນທຶກຜູ້ຊອກວຽກ'}
+            {savedLoading ? '...' : (isSavedState ? 'ລົບການບັນທຶກ' : 'ບັນທຶກ')}
           </button>
         </div>
       )}

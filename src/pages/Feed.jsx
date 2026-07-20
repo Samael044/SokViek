@@ -79,8 +79,8 @@ export default function Feed({ mode, title, desc, empty }) {
                 setApplied(res.applied);
 
                 setSavedLoading(true);
-                const resCompanySaved = await api.getSavedCompanyStatus(item.data.companyId);
-                setIsSavedState(resCompanySaved.saved);
+                const resJobSaved = await api.getSavedJobStatus(item.data.id);
+                setIsSavedState(resJobSaved.saved);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -102,7 +102,15 @@ export default function Feed({ mode, title, desc, empty }) {
     const handleToggleSave = async (id, type) => {
         try {
             setSavedLoading(true);
-            if (type === 'company') {
+            if (type === 'job') {
+                if (isSavedState) {
+                    await api.unsaveJob(id);
+                    setIsSavedState(false);
+                } else {
+                    await api.saveJob(id);
+                    setIsSavedState(true);
+                }
+            } else if (type === 'company') {
                 if (isSavedState) {
                     await api.unsaveCompany(id);
                     setIsSavedState(false);
@@ -164,13 +172,19 @@ export default function Feed({ mode, title, desc, empty }) {
 
     const renderJobDetail = (job) => (
         <>
-            {user && user.id !== job.companyId && (
+            {(!user || user.id !== job.companyId) && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
                     <button
                         type="button"
                         className="btn btn-outline btn-sm"
                         style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
-                        onClick={() => handleOpenReport('job', job.id)}
+                        onClick={() => {
+                            if (!user) {
+                                navigate('/login');
+                                return;
+                            }
+                            handleOpenReport('job', job.id);
+                        }}
                     >
                         <IconFlag size={12} /> ລາຍງານປະກາດນີ້
                     </button>
@@ -180,7 +194,11 @@ export default function Feed({ mode, title, desc, empty }) {
                 <span className="tag tag-job" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                     <IconCompany size={14} /> ປະກາດງານ
                 </span>
-                <span className="tag">{JOB_TYPES[job.type]}</span>
+                {job.type ? job.type.split(',').map((t, idx) => (
+                    <span key={idx} className="tag">{JOB_TYPES[t.trim()] || t.trim()}</span>
+                )) : (
+                    <span className="tag">ເຕັມເວລາ</span>
+                )}
             </div>
             <p className="detail-desc">{job.description}</p>
             <dl className="detail-dl">
@@ -192,7 +210,7 @@ export default function Feed({ mode, title, desc, empty }) {
                 <dd>{new Date(job.createdAt).toLocaleDateString('lo-LA')}</dd>
                 {job.company?.about && <><dt>ກ່ຽວກັບບໍລິສັດ</dt><dd>{job.company.about}</dd></>}
             </dl>
-            {user?.role === 'employees' && (
+            {(!user || user.role === 'employees') && (
                 <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
                     {applied ? (
                         <>
@@ -220,7 +238,13 @@ export default function Feed({ mode, title, desc, empty }) {
                             className="btn btn-primary"
                             style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
                             disabled={applyLoading}
-                            onClick={() => handleApply(job.id)}
+                            onClick={() => {
+                                if (!user) {
+                                    navigate('/login');
+                                    return;
+                                }
+                                handleApply(job.id);
+                            }}
                         >
                             {applyLoading ? 'ກຳລັງສະໝັກ...' : 'ສະໝັກງານ'}
                         </button>
@@ -230,10 +254,15 @@ export default function Feed({ mode, title, desc, empty }) {
                         className="btn btn-outline"
                         style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
                         disabled={savedLoading}
-                        onClick={() => handleToggleSave(job.companyId, 'company')}
+                        onClick={() => {
+                            if (!user) {
+                                navigate('/login');
+                                return;
+                            }
+                            handleToggleSave(job.id, 'job');
+                        }}
                     >
-                        <IconStar size={16} fill={isSavedState ? 'currentColor' : 'none'} />
-                        {isSavedState ? 'ບັນທຶກແລ້ວ' : 'ບັນທຶກບໍລິສັດ'}
+                        {savedLoading ? '...' : (isSavedState ? 'ລົບການບັນທຶກ' : 'ບັນທຶກ')}
                     </button>
                 </div>
             )}
@@ -242,13 +271,19 @@ export default function Feed({ mode, title, desc, empty }) {
 
     const renderResumeDetail = (item) => (
         <>
-            {user && user.id !== item.id && (
+            {(!user || user.id !== item.id) && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
                     <button
                         type="button"
                         className="btn btn-outline btn-sm"
                         style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
-                        onClick={() => handleOpenReport('resume', item.id)}
+                        onClick={() => {
+                            if (!user) {
+                                navigate('/login');
+                                return;
+                            }
+                            handleOpenReport('resume', item.id);
+                        }}
                     >
                         <IconFlag size={12} /> ລາຍງານຜູ້ຊອກວຽກນີ້
                     </button>
@@ -346,9 +381,15 @@ export default function Feed({ mode, title, desc, empty }) {
                             className="btn btn-primary"
                             style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
                             disabled={inviteLoading}
-                            onClick={() => handleSendInvite(item.id)}
+                            onClick={() => {
+                                if (!user) {
+                                    navigate('/login');
+                                    return;
+                                }
+                                handleSendInvite(item.id);
+                            }}
                         >
-                            {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຕ້ອງການຈ້າງ'}
+                            {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຮັບສະໝັກ'}
                         </button>
                     )}
                     <button
@@ -356,10 +397,15 @@ export default function Feed({ mode, title, desc, empty }) {
                         className="btn btn-outline"
                         style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
                         disabled={savedLoading}
-                        onClick={() => handleToggleSave(item.id, 'resume')}
+                        onClick={() => {
+                            if (!user) {
+                                navigate('/login');
+                                return;
+                            }
+                            handleToggleSave(item.id, 'resume');
+                        }}
                     >
-                        <IconStar size={16} fill={isSavedState ? 'currentColor' : 'none'} />
-                        {isSavedState ? 'ບັນທຶກແລ້ວ' : 'ບັນທຶກຜູ້ຊອກວຽກ'}
+                        {savedLoading ? '...' : (isSavedState ? 'ລົບການບັນທຶກ' : 'ບັນທຶກ')}
                     </button>
                 </div>
             )}
