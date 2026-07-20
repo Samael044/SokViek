@@ -147,9 +147,8 @@ export default function Profile() {
         return next;
       });
       setSelectedApplicantForDetail((prev) => prev ? { ...prev, status: 'approved' } : null);
-      alert(`ສົ່ງຄຳເຊີນຕິດຕໍ່ສຳພາດງານໃຫ້ ${applicant.user.profile ? `${applicant.user.profile.firstName} ${applicant.user.profile.lastName}` : applicant.user.email} ສຳເລັດ!`);
     } catch (err) {
-      alert(err.message);
+      console.error(err);
     } finally {
       setHireLoading(false);
     }
@@ -166,10 +165,10 @@ export default function Profile() {
         next.delete(applicant.id);
         return next;
       });
-      setSelectedApplicantForDetail((prev) => prev ? { ...prev, status: 'rejected' } : null);
-      alert(`ຍົກເລີກຜູ້ສະໝັກ ${applicant.user.profile ? `${applicant.user.profile.firstName} ${applicant.user.profile.lastName}` : applicant.user.email} ສຳເລັດ!`);
+      setApplicants((prev) => prev.filter((app) => app.id !== applicant.id));
+      setSelectedApplicantForDetail(null);
     } catch (err) {
-      alert(err.message);
+      console.error(err);
     } finally {
       setRejectLoading(false);
     }
@@ -281,7 +280,6 @@ export default function Profile() {
   };
 
   const handleDeleteJob = async (id) => {
-    if (!window.confirm('ລຶບປະກາດງານນີ້?')) return;
     try {
       await api.deleteJob(id);
       setMyJobs((prev) => prev.filter((j) => j.id !== id));
@@ -293,7 +291,6 @@ export default function Profile() {
   const handleToggleJobStatus = async (job) => {
     const newStatus = job.status === 'active' ? 'closed' : 'active';
     const actionText = newStatus === 'closed' ? 'ປິດຮັບສະໝັກ' : 'ເປີດຮັບສະໝັກ';
-    if (!window.confirm(`ต้องการ ${actionText} ตำแหน่งนี้?`)) return;
     try {
       await api.updateJobStatus(job.id, newStatus);
       setJobMessage(`${actionText} สำเร็จ`);
@@ -1018,11 +1015,6 @@ export default function Profile() {
                           <span className="tag tag-sm" style={{ marginTop: '0.25rem', display: 'inline-block' }}>{app.user.resume.desiredPosition}</span>
                         )}
                       </div>
-                      {(hiredApplicationIds.has(app.id) || app.status === 'approved') && (
-                        <span className="tag tag-sm" style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid #10b981', marginLeft: 'auto' }}>
-                          ຮັບສະໝັກແລ້ວ
-                        </span>
-                      )}
                       {(rejectedApplicationIds.has(app.id) || app.status === 'rejected') && (
                         <span className="tag tag-sm" style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid #ef4444', marginLeft: 'auto' }}>
                           ຍົກເລີກແລ້ວ
@@ -1267,7 +1259,7 @@ export default function Profile() {
                     disabled={hireLoading || rejectLoading || hiredApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'approved'}
                     onClick={() => openInterviewForm(selectedApplicantForDetail)}
                   >
-                    {hireLoading ? 'ກຳລັງສົ່ງ...' : (hiredApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'approved' ? '✓ ຕິດຕໍ່ສຳພາດແລ້ວ' : 'ຕິດຕໍ່ສຳພາດງານ')}
+                    {hireLoading ? 'ກຳລັງສົ່ງ...' : (hiredApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'approved' ? 'ຕິດຕໍ່ສຳພາດແລ້ວ' : 'ຕິດຕໍ່ສຳພາດງານ')}
                   </button>
 
                   <button
@@ -1286,7 +1278,7 @@ export default function Profile() {
                     disabled={hireLoading || rejectLoading || rejectedApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'rejected'}
                     onClick={() => handleReject(selectedApplicantForDetail)}
                   >
-                    {rejectLoading ? 'ກຳລັງສົ່ງ...' : (rejectedApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'rejected' ? '✕ ຍົກເລີກແລ້ວ' : 'ຍົກເລີກ')}
+                    {rejectLoading ? 'ກຳລັງສົ່ງ...' : (rejectedApplicationIds.has(selectedApplicantForDetail.id) || selectedApplicantForDetail.status === 'rejected' ? 'ຍົກເລີກແລ້ວ' : 'ຍົກເລີກ')}
                   </button>
                 </div>
               </div>

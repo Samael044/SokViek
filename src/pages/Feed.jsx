@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { JOB_TYPES } from '../constants/jobTypes';
 import DetailModal from '../components/DetailModal';
 import PostJobFab from '../components/PostJobFab';
 import ReportModal from '../components/ReportModal';
+import InterviewModal from '../components/InterviewModal';
 import { IconCompany, IconUser, IconPhone, IconMail, IconInbox, IconFlag, IconStar } from '../components/Icons';
 import { openImageInNewTab } from '../utils/image';
 
@@ -15,6 +16,9 @@ const maritalLabels = { single: 'ໂສດ', dating: 'ມີແຟນແລ້�
 export default function Feed({ mode, title, desc, empty }) {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const targetJobId = searchParams.get('jobId');
+
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({ position: '', jobType: '' });
@@ -26,6 +30,9 @@ export default function Feed({ mode, title, desc, empty }) {
     const [isSavedState, setIsSavedState] = useState(false);
     const [savedLoading, setSavedLoading] = useState(false);
     const [reportTarget, setReportTarget] = useState(null);
+    const [showInterviewModal, setShowInterviewModal] = useState(false);
+    const [inviteCandidate, setInviteCandidate] = useState(null);
+    const [isInvitedState, setIsInvitedState] = useState(false);
 
     const canContact = user?.role === 'company' || user?.role === 'admin';
 
@@ -56,6 +63,15 @@ export default function Feed({ mode, title, desc, empty }) {
         loadFeed();
     }, [mode]);
 
+    useEffect(() => {
+        if (targetJobId && items.length > 0 && mode === 'job') {
+            const found = items.find((i) => String(i.id) === String(targetJobId));
+            if (found) {
+                handleTileClick(found);
+            }
+        }
+    }, [targetJobId, items, mode]);
+
     const handleSearch = (e) => {
         e.preventDefault();
         loadFeed(filters);
@@ -77,6 +93,7 @@ export default function Feed({ mode, title, desc, empty }) {
             try {
                 const res = await api.checkApplied(item.data.id);
                 setApplied(res.applied);
+                setIsInvitedState(res.invited || false);
 
                 setSavedLoading(true);
                 const resJobSaved = await api.getSavedJobStatus(item.data.id);
@@ -170,104 +187,140 @@ export default function Feed({ mode, title, desc, empty }) {
         }
     };
 
-    const renderJobDetail = (job) => (
-        <>
-            {(!user || user.id !== job.companyId) && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
-                    <button
-                        type="button"
-                        className="btn btn-outline btn-sm"
-                        style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
-                        onClick={() => {
-                            if (!user) {
-                                navigate('/login');
-                                return;
-                            }
-                            handleOpenReport('job', job.id);
-                        }}
-                    >
-                        <IconFlag size={12} /> ລາຍງານປະກາດນີ້
-                    </button>
-                </div>
-            )}
-            <div className="detail-meta">
-                <span className="tag tag-job" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                    <IconCompany size={14} /> ປະກາດງານ
-                </span>
-                {job.type ? job.type.split(',').map((t, idx) => (
-                    <span key={idx} className="tag">{JOB_TYPES[t.trim()] || t.trim()}</span>
-                )) : (
-                    <span className="tag">ເຕັມເວລາ</span>
-                )}
-            </div>
-            <p className="detail-desc">{job.description}</p>
-            <dl className="detail-dl">
-                <dt>ບໍລິສັດ</dt><dd>{job.company?.name || '-'}</dd>
-                <dt>ສະຖານທີ່</dt><dd>{job.location}</dd>
-                <dt>ເງິນເດືອນ</dt><dd>{job.salary}</dd>
-                {job.requirements && <><dt>ຄຸນສົມບັດ</dt><dd>{job.requirements}</dd></>}
-                <dt>ວັນທີປະກາດ</dt>
-                <dd>{new Date(job.createdAt).toLocaleDateString('lo-LA')}</dd>
-                {job.company?.about && <><dt>ກ່ຽວກັບບໍລິສັດ</dt><dd>{job.company.about}</dd></>}
-            </dl>
-            {(!user || user.role === 'employees') && (
-                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
-                    {applied ? (
-                        <>
-                            <button
-                                type="button"
-                                className="btn btn-outline"
-                                style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
-                                disabled
-                            >
-                                ສະໝັກແລ້ວ
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-danger"
-                                style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
-                                disabled={applyLoading}
-                                onClick={() => handleCancelApply(job.id)}
-                            >
-                                {applyLoading ? 'ກຳລັງຍົກເລີກ...' : 'ຍົກເລີກ'}
-                            </button>
-                        </>
-                    ) : (
+    const renderJobDetail = (job) => {
+        const isClosed = job.status === 'closed';
+        const postDate = (job.createdAt || job.created_at) ? new Date(job.createdAt || job.created_at).toLocaleDateString('lo-LA') : '-';
+        const compName = job.company?.name || job.companyName || '-';
+
+        return (
+            <>
+                {(!user || user.id !== job.companyId) && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
                         <button
                             type="button"
-                            className="btn btn-primary"
-                            style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
-                            disabled={applyLoading}
+                            className="btn btn-outline btn-sm"
+                            style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
                             onClick={() => {
                                 if (!user) {
                                     navigate('/login');
                                     return;
                                 }
-                                handleApply(job.id);
+                                handleOpenReport('job', job.id);
                             }}
                         >
-                            {applyLoading ? 'ກຳລັງສະໝັກ...' : 'ສະໝັກງານ'}
+                            <IconFlag size={12} /> ລາຍງານປະກາດນີ້
                         </button>
+                    </div>
+                )}
+                <div className="detail-meta">
+                    <span className="tag tag-job" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                        <IconCompany size={14} /> ປະກາດງານ
+                    </span>
+                    {job.type ? job.type.split(',').map((t, idx) => (
+                        <span key={idx} className="tag">{JOB_TYPES[t.trim()] || t.trim()}</span>
+                    )) : (
+                        <span className="tag">ເຕັມເວລາ</span>
                     )}
-                    <button
-                        type="button"
-                        className="btn btn-outline"
-                        style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
-                        disabled={savedLoading}
-                        onClick={() => {
-                            if (!user) {
-                                navigate('/login');
-                                return;
-                            }
-                            handleToggleSave(job.id, 'job');
-                        }}
-                    >
-                        {savedLoading ? '...' : (isSavedState ? 'ລົບການບັນທຶກ' : 'ບັນທຶກ')}
-                    </button>
+                    {isClosed && (
+                        <span className="tag" style={{ backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}>
+                            ປິດຮັບສະໝັກ
+                        </span>
+                    )}
                 </div>
-            )}
-        </>
-    );
+
+                {isClosed && (
+                    <div style={{ padding: '0.75rem 1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginTop: '0.75rem', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #fca5a5' }}>
+                        ງານນີ້ຍັງບໍ່ເປີດຮັບສະໝັກ
+                    </div>
+                )}
+
+                <p className="detail-desc">{job.description}</p>
+                <dl className="detail-dl">
+                    <dt>ບໍລິສັດ</dt><dd>{compName}</dd>
+                    <dt>ສະຖານທີ່</dt><dd>{job.location}</dd>
+                    <dt>ເງິນເດືອນ</dt><dd>{job.salary}</dd>
+                    {job.requirements && <><dt>ຄຸນສົມບັດ</dt><dd>{job.requirements}</dd></>}
+                    <dt>ວັນທີປະກາດ</dt>
+                    <dd>{postDate}</dd>
+                    {job.company?.about && <><dt>ກ່ຽວກັບບໍລິສັດ</dt><dd>{job.company.about}</dd></>}
+                </dl>
+                {(!user || user.role === 'employees') && (
+                    <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+                        {isClosed ? (
+                            <button
+                                type="button"
+                                className="btn btn-outline"
+                                style={{ flex: 1, padding: '0.75rem', fontSize: '1rem', color: '#991b1b', borderColor: '#fca5a5', backgroundColor: '#fef2f2' }}
+                                disabled
+                            >
+                                ງານນີ້ຍັງບໍ່ເປີດຮັບສະໝັກ
+                            </button>
+                        ) : isInvitedState ? (
+                            <button
+                                type="button"
+                                className="btn btn-outline"
+                                style={{ flex: 1, padding: '0.75rem', fontSize: '1rem', color: '#2563eb', borderColor: '#93c5fd', backgroundColor: '#eff6ff', fontWeight: '600' }}
+                                disabled
+                            >
+                                ຖືກນັດສຳພາດແລ້ວ
+                            </button>
+                        ) : applied ? (
+                            <>
+                                <button
+                                    type="button"
+                                    className="btn btn-outline"
+                                    style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
+                                    disabled
+                                >
+                                    ສະໝັກແລ້ວ
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-danger"
+                                    style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
+                                    disabled={applyLoading}
+                                    onClick={() => handleCancelApply(job.id)}
+                                >
+                                    {applyLoading ? 'ກຳລັງຍົກເລີກ...' : 'ຍົກເລີກ'}
+                                </button>
+                            </>
+                        ) : (
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
+                                disabled={applyLoading}
+                                onClick={() => {
+                                    if (!user) {
+                                        navigate('/login');
+                                        return;
+                                    }
+                                    handleApply(job.id);
+                                }}
+                            >
+                                {applyLoading ? 'ກຳລັງສະໝັກ...' : 'ສະໝັກງານ'}
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            className="btn btn-outline"
+                            style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+                            disabled={savedLoading}
+                            onClick={() => {
+                                if (!user) {
+                                    navigate('/login');
+                                    return;
+                                }
+                                handleToggleSave(job.id, 'job');
+                            }}
+                        >
+                            {savedLoading ? '...' : (isSavedState ? 'ລົບການບັນທຶກ' : 'ບັນທຶກ')}
+                        </button>
+                    </div>
+                )}
+            </>
+        );
+    };
 
     const renderResumeDetail = (item) => (
         <>
@@ -386,10 +439,17 @@ export default function Feed({ mode, title, desc, empty }) {
                                     navigate('/login');
                                     return;
                                 }
-                                handleSendInvite(item.id);
+                                setInviteCandidate({
+                                    id: item.id,
+                                    name: item.profile?.firstName
+                                        ? `${item.profile.firstName} ${item.profile.lastName}`
+                                        : (item.user?.email || 'ຜູ້ຊອກວຽກ'),
+                                    desiredPosition: item.resume?.desiredPosition || ''
+                                });
+                                setShowInterviewModal(true);
                             }}
                         >
-                            {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຮັບສະໝັກ'}
+                            {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ສົ່ງຄຳຊວນ'}
                         </button>
                     )}
                     <button
@@ -431,23 +491,11 @@ export default function Feed({ mode, title, desc, empty }) {
                         <div className="search-inline" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                             <input
                                 className="search-inline-input"
-                                style={{ flex: 2, minWidth: '200px' }}
+                                style={{ flex: 1, minWidth: '200px' }}
                                 placeholder="ຕົວຢ່າງ: Frontend Developer"
                                 value={filters.position}
                                 onChange={(e) => setFilters({ ...filters, position: e.target.value })}
                             />
-                            <select
-                                className="search-inline-input"
-                                style={{ flex: 1, minWidth: '150px', background: 'white', padding: '0.625rem', borderRadius: '8px', border: '1px solid var(--border)' }}
-                                value={filters.jobType}
-                                onChange={(e) => setFilters({ ...filters, jobType: e.target.value })}
-                            >
-                                <option value="">-- ທຸກຮູບແບບວຽກ --</option>
-                                <option value="full-time">ເຕັມເວລາ (Full-time)</option>
-                                <option value="part-time">ບໍ່ເຕັມເວລາ (Part-time)</option>
-                                <option value="contract">ສັນຍາຈ้าง (Contract)</option>
-                                <option value="remote">ເຮັດທາງໄກ (Remote)</option>
-                            </select>
                             <div className="search-inline-actions">
                                 <button type="submit" className="btn btn-primary btn-sm">ຄົ້ນຫາ</button>
                                 <button type="button" className="btn btn-outline btn-sm" onClick={handleReset}>ລ້າງ</button>
@@ -573,6 +621,21 @@ export default function Feed({ mode, title, desc, empty }) {
                     targetType={reportTarget.type}
                     targetId={reportTarget.id}
                     onClose={() => setReportTarget(null)}
+                />
+            )}
+
+            {showInterviewModal && (
+                <InterviewModal
+                    preSelectedEmployee={inviteCandidate}
+                    onClose={() => {
+                        setShowInterviewModal(false);
+                        setInviteCandidate(null);
+                    }}
+                    onSuccess={() => {
+                        if (inviteCandidate) {
+                            setInvitedUserIds((prev) => new Set([...prev, inviteCandidate.id]));
+                        }
+                    }}
                 />
             )}
 

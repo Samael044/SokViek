@@ -99,24 +99,20 @@ export default function AdminReports() {
   }, []);
 
   const handleWarn = async (reportId) => {
-    if (!window.confirm('ຕ້ອງການສົ່ງຄຳເຕືອນຫາຜູ້ໃຊ້ທີ່ຖືກລາຍງານ?')) return;
     try {
       await api.warnUserReport(reportId);
-      alert('ສົ່ງຄຳເຕືອນຫາຜູ້ໃຊ້ສຳເລັດແລ້ວ');
       await loadData();
     } catch (err) {
-      alert(err.message || 'ເກີດຂໍ້ຜິດພາດ');
+      console.error(err);
     }
   };
 
   const handleResolve = async (reportId) => {
-    if (!window.confirm('ຕ້ອງການໝາຍລາຍງານນີ້ວ່າແກ້ໄຂແລ້ວ?')) return;
     try {
       await api.resolveUserReport(reportId);
-      alert('ໝາຍວ່າແກ້ໄຂແລ້ວສຳເລັດ');
       await loadData();
     } catch (err) {
-      alert(err.message || 'ເກີດຂໍ້ຜິດພາດ');
+      console.error(err);
     }
   };
 

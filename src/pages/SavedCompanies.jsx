@@ -35,7 +35,7 @@ export default function SavedCompanies() {
             if (jRes.jobs && jRes.jobs.length > 0) {
               fallbackJobs.push({ ...jRes.jobs[0], savedAt: c.savedAt });
             }
-          } catch (e) {}
+          } catch (e) { }
         }
         setSavedJobs(fallbackJobs);
       }
@@ -91,7 +91,6 @@ export default function SavedCompanies() {
 
   const handleUnsaveJob = async (e, jobId) => {
     e.stopPropagation();
-    if (!window.confirm('ຕ້ອງການເອົາວຽກນີ້ອອກຈາກລາຍການບັນທຶກ?')) return;
     setActionLoading(true);
     try {
       await api.unsaveJob(jobId);
@@ -114,90 +113,117 @@ export default function SavedCompanies() {
     setReportTarget({ type, id });
   };
 
-  const renderJobDetail = (job) => (
-    <>
-      {user && user.id !== job.companyId && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
-            style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
-            onClick={() => handleOpenReport('job', job.id)}
-          >
-            <IconFlag size={12} /> ລາຍງານປະກາດນີ້
-          </button>
-        </div>
-      )}
-      <div className="detail-meta">
-        <span className="tag tag-job" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-          <IconCompany size={14} /> ປະກາດງານ
-        </span>
-        {job.type ? job.type.split(',').map((t, idx) => (
-          <span key={idx} className="tag">{JOB_TYPES[t.trim()] || t.trim()}</span>
-        )) : (
-          <span className="tag">ເຕັມເວລາ</span>
-        )}
-      </div>
-      <p className="detail-desc">{job.description}</p>
-      <dl className="detail-dl">
-        <dt>ບໍລິສັດ</dt><dd>{job.company?.name || '-'}</dd>
-        <dt>ສະຖານທີ່</dt><dd>{job.location}</dd>
-        <dt>ເງິນເດືອນ</dt><dd>{job.salary}</dd>
-        {job.requirements && <><dt>ຄຸນສົມບັດ</dt><dd>{job.requirements}</dd></>}
-        <dt>ວັນທີປະກາດ</dt>
-        <dd>{new Date(job.createdAt).toLocaleDateString('lo-LA')}</dd>
-        {job.company?.about && <><dt>ກ່ຽວກັບບໍລິສັດ</dt><dd>{job.company.about}</dd></>}
-      </dl>
+  const renderJobDetail = (job) => {
+    const isClosed = job.status === 'closed';
+    const postDate = (job.createdAt || job.created_at) ? new Date(job.createdAt || job.created_at).toLocaleDateString('lo-LA') : '-';
+    const compName = job.company?.name || job.companyName || '-';
 
-      <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
-        {applied ? (
-          <>
+    return (
+      <>
+        {user && user.id !== job.companyId && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{ color: 'var(--error)', borderColor: 'var(--error)', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
+              onClick={() => handleOpenReport('job', job.id)}
+            >
+              <IconFlag size={12} /> ລາຍງານປະກາດນີ້
+            </button>
+          </div>
+        )}
+        <div className="detail-meta">
+          <span className="tag tag-job" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+            <IconCompany size={14} /> ປະກາດງານ
+          </span>
+          {job.type ? job.type.split(',').map((t, idx) => (
+            <span key={idx} className="tag">{JOB_TYPES[t.trim()] || t.trim()}</span>
+          )) : (
+            <span className="tag">ເຕັມເວລາ</span>
+          )}
+          {isClosed && (
+            <span className="tag" style={{ backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}>
+              ປິດຮັບສະໝັກ
+            </span>
+          )}
+        </div>
+
+        {isClosed && (
+          <div style={{ padding: '0.75rem 1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginTop: '0.75rem', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #fca5a5' }}>
+            ງານນີ້ຍັງບໍ່ເປີດຮັບສະໝັກ
+          </div>
+        )}
+
+        <p className="detail-desc">{job.description}</p>
+        <dl className="detail-dl">
+          <dt>ບໍລິສັດ</dt><dd>{compName}</dd>
+          <dt>ສະຖານທີ່</dt><dd>{job.location}</dd>
+          <dt>ເງິນເດືອນ</dt><dd>{job.salary}</dd>
+          {job.requirements && <><dt>ຄຸນສົມບັດ</dt><dd>{job.requirements}</dd></>}
+          <dt>ວັນທີປະກາດ</dt>
+          <dd>{postDate}</dd>
+          {job.company?.about && <><dt>ກ່ຽວກັບບໍລິສັດ</dt><dd>{job.company.about}</dd></>}
+        </dl>
+
+        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+          {isClosed ? (
             <button
               type="button"
               className="btn btn-outline"
-              style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
+              style={{ flex: 1, padding: '0.75rem', fontSize: '1rem', color: '#991b1b', borderColor: '#fca5a5', backgroundColor: '#fef2f2' }}
               disabled
             >
-              ສະໝັກແລ້ວ
+              ງານນີ້ຍັງບໍ່ເປີດຮັບສະໝັກ
             </button>
+          ) : applied ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
+                disabled
+              >
+                ສະໝັກແລ້ວ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
+                disabled={applyLoading}
+                onClick={() => handleCancelApply(job.id)}
+              >
+                {applyLoading ? 'ກຳລັງຍົກເລີກ...' : 'ຍົກເລີກສະໝັກ'}
+              </button>
+            </>
+          ) : (
             <button
               type="button"
-              className="btn btn-danger"
-              style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
+              className="btn btn-primary"
+              style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
               disabled={applyLoading}
-              onClick={() => handleCancelApply(job.id)}
+              onClick={() => handleApply(job.id)}
             >
-              {applyLoading ? 'ກຳລັງຍົກເລີກ...' : 'ຍົກເລີກສະໝັກ'}
+              {applyLoading ? 'ກຳລັງສະໝັກ...' : 'ສະໝັກງານ'}
             </button>
-          </>
-        ) : (
+          )}
           <button
             type="button"
-            className="btn btn-primary"
-            style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
-            disabled={applyLoading}
-            onClick={() => handleApply(job.id)}
+            className="btn btn-outline"
+            style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', color: 'var(--error)', borderColor: 'var(--error)' }}
+            disabled={actionLoading}
+            onClick={(e) => handleUnsaveJob(e, job.id)}
           >
-            {applyLoading ? 'ກຳລັງສະໝັກ...' : 'ສະໝັກງານ'}
+            {actionLoading ? '...' : 'ລົບການບັນທຶກ'}
           </button>
-        )}
-        <button
-          type="button"
-          className="btn btn-outline"
-          style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', color: 'var(--error)', borderColor: 'var(--error)' }}
-          disabled={actionLoading}
-          onClick={(e) => handleUnsaveJob(e, job.id)}
-        >
-          {actionLoading ? '...' : 'ລົບການບັນທຶກ'}
-        </button>
-      </div>
-    </>
-  );
+        </div>
+      </>
+    );
+  };
 
   return (
     <div className="page page-board">
       <div className="container">
-        
+
         {/* ─── Board Header ─── */}
         <header className="board-header">
           <div>

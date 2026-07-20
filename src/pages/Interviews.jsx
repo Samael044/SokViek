@@ -75,7 +75,7 @@ export default function Interviews() {
       setIsEditing(false);
       loadInterviews();
     } catch (err) {
-      alert(err.message || 'ເກີດຂໍ້ຜິດພາດໃນການອັບເດດ');
+      console.error(err);
     } finally {
       setActionLoading(false);
     }
@@ -89,7 +89,7 @@ export default function Interviews() {
       setSelectedInterview(null);
       loadInterviews();
     } catch (err) {
-      alert(err.message || 'ເກີດຂໍ້ຜິດພາດໃນການຕອບຮັບ');
+      console.error(err);
     } finally {
       setActionLoading(false);
     }
@@ -103,7 +103,7 @@ export default function Interviews() {
       setSelectedInterview(null);
       loadInterviews();
     } catch (err) {
-      alert(err.message || 'ເກີດຂໍ້ຜິດພາດໃນການຍົກເລີກ');
+      console.error(err);
     } finally {
       setActionLoading(false);
     }
@@ -112,7 +112,7 @@ export default function Interviews() {
   return (
     <div className="page page-board">
       <div className="container">
-        
+
         {/* ─── Board Header ─── */}
         <header className="board-header">
           <div>
@@ -178,7 +178,7 @@ export default function Interviews() {
                       fontWeight: '600',
                     }}
                   >
-                    <IconCompany size={14} /> ສຳພາດ
+                    ສຳພາດ
                   </span>
                   <span
                     style={{
@@ -189,15 +189,15 @@ export default function Interviews() {
                       ...(item.status === 'scheduled'
                         ? { backgroundColor: '#fef3c7', color: '#d97706' }
                         : item.status === 'accepted' || item.status === 'completed'
-                        ? { backgroundColor: '#d1fae5', color: '#059669' }
-                        : { backgroundColor: '#fee2e2', color: '#dc2626' }),
+                          ? { backgroundColor: '#d1fae5', color: '#059669' }
+                          : { backgroundColor: '#fee2e2', color: '#dc2626' }),
                     }}
                   >
                     {item.status === 'scheduled'
                       ? 'ນັດແລ້ວ'
                       : item.status === 'accepted' || item.status === 'completed'
-                      ? '✓ ຕອບຮັບແລ້ວ'
-                      : '✕ ຍົກເລີກແລ້ວ'}
+                        ? 'ຕອບຮັບແລ້ວ'
+                        : 'ຍົກເລີກແລ້ວ'}
                   </span>
                 </div>
 
@@ -245,7 +245,7 @@ export default function Interviews() {
                     <strong>ວັນທີ:</strong> {formatDateDMY(item.date)} ເວລາ {item.time ? item.time.substring(0, 5) : '09:00'}
                   </div>
                   <div>
-                    <strong>ຮູບແບບ:</strong> {item.type === 'online' ? '🟢 Online' : '🏢 Onsite'}
+                    <strong>ຮູບແບບ:</strong> {item.type === 'online' ? 'Online' : 'Onsite'}
                   </div>
                   <div>
                     <strong>ສະຖານທີ່/ລິ້ງ:</strong>{' '}
@@ -370,13 +370,13 @@ export default function Interviews() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                   <p style={{ margin: '0 0 0.5rem 0', fontWeight: '700', fontSize: '1.05rem' }}>
-                    👤 ຜູ້ສະໝັກ: {selectedInterview.employeeName}
+                    ຜູ້ສະໝັກ: {selectedInterview.employeeName}
                   </p>
                   <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>
                     <strong>ວັນທີ:</strong> {formatDateDMY(selectedInterview.date)} ເວລາ {selectedInterview.time ? selectedInterview.time.substring(0, 5) : '09:00'}
                   </p>
                   <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>
-                    <strong>ຮູບແບບ:</strong> {selectedInterview.type === 'online' ? '🟢 Online' : '🏢 Onsite'}
+                    <strong>ຮູບແບບ:</strong> {selectedInterview.type === 'online' ? 'Online' : 'Onsite'}
                   </p>
                   <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>
                     <strong>ສະຖານທີ່/ລິ້ງ:</strong> {selectedInterview.type === 'online' ? selectedInterview.meetingLink : selectedInterview.location}
@@ -396,7 +396,7 @@ export default function Interviews() {
                       style={{ flex: 1 }}
                       onClick={() => setIsEditing(true)}
                     >
-                      ✏️ ແກ້ໄຂຂໍ້ມູນ
+                      ແກ້ໄຂຂໍ້ມູນ
                     </button>
                   )}
                   <button
@@ -406,7 +406,7 @@ export default function Interviews() {
                     disabled={actionLoading}
                     onClick={handleCancelInterview}
                   >
-                    🗑️ ລົບ / ຍົກເລີກການນັດສຳພາດ
+                    ຍົກເລີກການນັດສຳພາດ
                   </button>
                 </div>
               </div>
@@ -416,16 +416,26 @@ export default function Interviews() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ padding: '1.25rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 <p style={{ margin: '0 0 0.5rem 0', fontWeight: '700', fontSize: '1.05rem', color: 'var(--primary)' }}>
-                  🏢 ບໍລິສັດ: {selectedInterview.companyName}
+                  ບໍລິສັດ: {selectedInterview.companyName}
                 </p>
                 <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>
-                  <strong>ຕຳແໜ່ງ:</strong> {selectedInterview.jobTitle}
+                  <strong>ຕຳແໜ່ງ:</strong>{' '}
+                  <span
+                    style={{ color: '#2563eb', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                    onClick={() => {
+                      setSelectedInterview(null);
+                      navigate(`/jobs?jobId=${selectedInterview.jobId}`);
+                    }}
+                    title="ກົດເພື່ອເບິ່ງປະກາດງານນີ້"
+                  >
+                    {selectedInterview.jobTitle} ↗
+                  </span>
                 </p>
                 <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>
                   <strong>ວັນທີ:</strong> {formatDateDMY(selectedInterview.date)} ເວລາ {selectedInterview.time ? selectedInterview.time.substring(0, 5) : '09:00'}
                 </p>
                 <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>
-                  <strong>ຮູບແບບ:</strong> {selectedInterview.type === 'online' ? '🟢 Online Meeting' : '🏢 ຢູ່ບໍລິສັດ (Onsite)'}
+                  <strong>ຮູບແບບ:</strong> {selectedInterview.type === 'online' ? 'Online Meeting' : 'ຢູ່ບໍລິສັດ (Onsite)'}
                 </p>
                 <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>
                   <strong>ສະຖານທີ່/ລິ້ງ:</strong>{' '}
@@ -456,7 +466,7 @@ export default function Interviews() {
                     disabled={actionLoading}
                     onClick={handleAcceptInterview}
                   >
-                    ✓ ຕອບຮັບການນັດສຳພາດ
+                    ຕອບຮັບການນັດສຳພາດ
                   </button>
                 )}
                 <button
@@ -466,7 +476,7 @@ export default function Interviews() {
                   disabled={actionLoading}
                   onClick={handleCancelInterview}
                 >
-                  🗑️ ລົບ / ຍົກເລີກການນັດສຳພາດ
+                  ປະຕິເສດການນັດສຳພາດ
                 </button>
               </div>
             </div>

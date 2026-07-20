@@ -284,7 +284,7 @@ export default function Home() {
       </dl>
       {item.resume?.resumeImages && item.resume.resumeImages.length > 0 && (
         <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginBottom: '1rem' }}>
-          <strong style={{ display: 'block', fontSize: '0.9375rem', marginBottom: '0.5rem', color: 'var(--text)' }}>ຮູບພາບ Resume / CV:</strong>
+          <strong style={{ display: 'block', fontSize: '0.9375rem', marginBottom: '0.5rem', color: 'var(--text)' }}>Resume / CV:</strong>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {item.resume.resumeImages.map((img, idx) => (
               <button
@@ -336,7 +336,7 @@ export default function Home() {
                 style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
                 disabled
               >
-                ສົ່ງຄຳເຊີນແລ້ວ
+                ສົ່ງຄຳຊວນແລ້ວ
               </button>
               <button
                 type="button"
@@ -365,7 +365,7 @@ export default function Home() {
                 handleSendInvite(item.id);
               }}
             >
-              {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຮັບສະໝັກ'}
+              {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ສົ່ງຄຳຊວນ'}
             </button>
           )}
           <button

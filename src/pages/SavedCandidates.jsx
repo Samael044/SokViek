@@ -44,7 +44,6 @@ export default function SavedCandidates() {
 
   const handleUnsave = async (e, employeeId) => {
     e.stopPropagation(); // prevent opening details modal
-    if (!window.confirm('ต้องการເອົາພະນັກງານນີ້ອອກຈາກລາຍການບັນທຶກ?')) return;
     setActionLoading(true);
     try {
       await api.unsaveCandidate(employeeId);
@@ -90,10 +89,10 @@ export default function SavedCandidates() {
         {item.resume?.experience && <><dt>ປະສົບການ</dt><dd>{item.resume.experience}</dd></>}
         {item.resume?.education && <><dt>ການສຶກສາ</dt><dd>{item.resume.education}</dd></>}
       </dl>
-      
+
       {item.resume?.resumeImages && item.resume.resumeImages.length > 0 && (
         <div className="mt-6 border-t border-gray-100 pt-6 mb-4">
-          <strong className="block text-sm font-bold text-gray-800 mb-3">ຮູບພາບ Resume / CV:</strong>
+          <strong className="block text-sm font-bold text-gray-800 mb-3"> Resume / CV:</strong>
           <div className="grid-tiles" style={{ gridTemplateColumns: '1fr 1fr' }}>
             {item.resume.resumeImages.map((img, idx) => (
               <button
@@ -118,7 +117,7 @@ export default function SavedCandidates() {
               style={{ flex: 1, cursor: 'not-allowed', color: 'var(--text-muted)' }}
               disabled
             >
-              ສົ່ງຄຳເຊີນແລ້ວ
+              ສົ່ງຄຳຊວນແລ້ວ
             </button>
             <button
               type="button"
@@ -141,7 +140,7 @@ export default function SavedCandidates() {
             disabled={inviteLoading}
             onClick={() => handleSendInvite(item.id)}
           >
-            {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ຮັບສະໝັກ'}
+            {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ສົ່ງຄຳຊວນ'}
           </button>
         )}
         <button
@@ -161,7 +160,7 @@ export default function SavedCandidates() {
   return (
     <div className="page page-board">
       <div className="container">
-        
+
         {/* ─── Board Header ─── */}
         <header className="board-header">
           <div>
@@ -184,7 +183,7 @@ export default function SavedCandidates() {
                 const displayName = c.profile?.firstName
                   ? `${c.profile.firstName} ${c.profile.lastName}`
                   : c.contact?.email || 'ຜູ້ຊອກວຽກ';
-                
+
                 return (
                   <button
                     key={c.id}

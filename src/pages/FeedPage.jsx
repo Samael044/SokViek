@@ -8,7 +8,7 @@ const PAGE_CONFIG = {
   },
   resume: {
     title: 'ພະນັກງານ',
-    desc: 'Resume ຜູ້ຊອກວຽກ — ຮຽງຈາກຫຼ້າສຸດ',
+    desc: '',
     empty: 'ບໍ່ພົບ Resume',
   },
 };
