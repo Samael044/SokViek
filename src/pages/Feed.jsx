@@ -492,7 +492,6 @@ export default function Feed({ mode, title, desc, empty }) {
                             <input
                                 className="search-inline-input"
                                 style={{ flex: 1, minWidth: '200px' }}
-                                placeholder="ຕົວຢ່າງ: Frontend Developer"
                                 value={filters.position}
                                 onChange={(e) => setFilters({ ...filters, position: e.target.value })}
                             />
@@ -590,7 +589,6 @@ export default function Feed({ mode, title, desc, empty }) {
                                     <div className="tile-action">
                                         <div className="tile-btn-premium">
                                             <span>{item.type === 'job' ? 'ເບິ່ງຂໍ້ມູນວຽກ' : 'ເບິ່ງລາຍລະອຽດ'}</span>
-                                            <span className="btn-arrow">&rarr;</span>
                                         </div>
                                     </div>
                                 </button>

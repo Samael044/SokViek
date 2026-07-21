@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api, calculateAge, fileToBase64 } from '../api/client';
+import { api, calculateAge, fileToBase64, validatePhone, validateLoginInput } from '../api/client';
 import PasswordField from '../components/PasswordField';
 import BirthDateInput from '../components/BirthDateInput';
-import { IconSuccess, IconMail, IconUser, IconCompany, IconCamera } from '../components/Icons';
+import { IconSuccess, IconMail, IconUser, IconCompany, IconCamera, IconArrowLeft } from '../components/Icons';
+import logoImg from '../assets/logo.png';
 
 export default function Register() {
   const [searchParams] = useSearchParams();
@@ -31,6 +32,7 @@ export default function Register() {
     village: '',
     maritalStatus: '',
     phone: '',
+    email: '',
     avatar: null,
   });
 
@@ -46,11 +48,12 @@ export default function Register() {
   useEffect(() => {
     if (!finishMode || !user) return;
     if (user.phone) {
-      setJobseekerForm((f) => ({ ...f, phone: user.phone }));
-      setCompanyForm((f) => ({ ...f, phone: user.phone }));
+      setJobseekerForm((f) => ({ ...f, phone: f.phone || user.phone }));
+      setCompanyForm((f) => ({ ...f, phone: f.phone || user.phone }));
     }
     if (user.email) {
-      setCompanyForm((f) => ({ ...f, companyEmail: user.email }));
+      setCompanyForm((f) => ({ ...f, companyEmail: f.companyEmail || user.email }));
+      setJobseekerForm((f) => ({ ...f, email: f.email || user.email }));
     }
   }, [finishMode, user]);
 
@@ -73,6 +76,12 @@ export default function Register() {
     e.preventDefault();
     setError('');
 
+    const val = validateLoginInput(login);
+    if (!val.valid) {
+      setError(val.message);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('ລະຫັດຜ່ານບໍ່ກົງກັນ');
       return;
@@ -87,11 +96,15 @@ export default function Register() {
 
   const handleRoleSelect = (selectedRole) => {
     setRole(selectedRole);
-    if (selectedRole === 'company' && login.includes('@')) {
-      setCompanyForm((f) => ({ ...f, companyEmail: login.trim() }));
-    }
-    if (selectedRole === 'employees' && !login.includes('@')) {
-      setJobseekerForm((f) => ({ ...f, phone: login.trim() }));
+    const cleanLogin = login.trim();
+    const isEmail = cleanLogin.includes('@');
+
+    if (isEmail) {
+      setCompanyForm((f) => ({ ...f, companyEmail: cleanLogin }));
+      setJobseekerForm((f) => ({ ...f, email: cleanLogin }));
+    } else {
+      setCompanyForm((f) => ({ ...f, phone: cleanLogin }));
+      setJobseekerForm((f) => ({ ...f, phone: cleanLogin }));
     }
     setStep(3);
   };
@@ -110,6 +123,26 @@ export default function Register() {
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (role === 'employees') {
+      const phoneVal = validatePhone(jobseekerForm.phone);
+      if (!phoneVal.valid) {
+        setError(phoneVal.message);
+        return;
+      }
+    } else if (role === 'company') {
+      const phoneVal = validatePhone(companyForm.phone);
+      if (!phoneVal.valid) {
+        setError(phoneVal.message);
+        return;
+      }
+      const emailVal = validateLoginInput(companyForm.companyEmail);
+      if (!emailVal.valid || !emailVal.isEmail) {
+        setError(emailVal.message || 'ຮູບແບບ Gmail ບໍລິສັດ ບໍ່ຖືກຕ້ອງ');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -152,7 +185,7 @@ export default function Register() {
       <div className="auth-page">
         <div className="auth-card">
           <div className="auth-brand">
-            <span className="auth-brand-mark">S</span>
+            <img src={logoImg} alt="Sokviek Logo" className="auth-brand-img" />
             <span className="auth-brand-name">Sokviek</span>
           </div>
           <div className="pending-success">
@@ -179,7 +212,7 @@ export default function Register() {
     <div className="auth-page">
       <div className={`auth-card ${wideCard ? 'auth-card-wide' : ''}`}>
         <div className="auth-brand">
-          <span className="auth-brand-mark">S</span>
+          <img src={logoImg} alt="Sokviek Logo" className="auth-brand-img" />
           <span className="auth-brand-name">Sokviek</span>
         </div>
         {finishMode && (
@@ -195,7 +228,7 @@ export default function Register() {
 
             <form onSubmit={handleCredentialsSubmit}>
               <div className="form-group">
-                <label htmlFor="login">Gmail</label>
+                <label htmlFor="login">Gmail ຫຼື ເບີໂທລະສັບ</label>
                 <input
                   id="login"
                   type="text"
@@ -215,10 +248,10 @@ export default function Register() {
               />
               <PasswordField
                 id="confirmPassword"
-                label="ຢືນຢັນລະหັດຜ່ານ"
+                label="ຢືນຢັນລະຫັດຜ່ານ"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="ປ້ອນລະຫັດຜ່ານອີກຄັ້ງ"
+                placeholder="ປ້ອນລະຫັດຜ່ານ"
                 required
               />
               <button type="submit" className="btn btn-primary btn-full">
@@ -234,6 +267,13 @@ export default function Register() {
 
         {step === 2 && (
           <div className="role-select">
+            {!finishMode && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '0.75rem' }}>
+                <button type="button" className="btn-back" style={{ margin: 0 }} onClick={() => setStep(1)}>
+                  <IconArrowLeft size={15} /> ຍ້ອນກັບ
+                </button>
+              </div>
+            )}
             <h1>ປ້ອນຂໍ້ມູນໂປຣໄຟລ໌</h1>
             <p className="auth-subtitle">ເລືອກບົດບາດຂອງທ່ານ</p>
             {error && <div className="alert alert-error">{error}</div>}
@@ -249,18 +289,19 @@ export default function Register() {
                 <p>ປະກາດງານ ແລະ ຄົ້ນຫາພະນັກງານ</p>
               </button>
             </div>
-            {!finishMode && (
-              <button type="button" className="btn-back" onClick={() => setStep(1)}>← ຍ້ອນກັບ</button>
-            )}
           </div>
         )}
 
         {step === 3 && role === 'employees' && (
           <>
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '0.75rem' }}>
+              <button type="button" className="btn-back" style={{ margin: 0 }} onClick={() => setStep(2)}>
+                <IconArrowLeft size={15} /> ປ່ຽນບົດບາດ
+              </button>
+            </div>
             <h1>ກອກຂໍ້ມູນໂປຣໄຟລ໌</h1>
             <p className="auth-subtitle">ບົດບາດ: ຜູ້ຊອກວຽກ</p>
             <form onSubmit={handleProfileSubmit}>
-              <button type="button" className="btn-back" onClick={() => setStep(2)}>← ປ່ຽນບົດບາດ</button>
               {error && <div className="alert alert-error">{error}</div>}
 
               <div className="form-group">
@@ -335,6 +376,16 @@ export default function Register() {
                 </div>
               </div>
 
+              <div className="form-group">
+                <label>Gmail / ອີເມວ</label>
+                <input
+                  type="email"
+                  value={jobseekerForm.email || ''}
+                  onChange={(e) => setJobseekerForm({ ...jobseekerForm, email: e.target.value })}
+                  placeholder="Gmail"
+                />
+              </div>
+
               <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
                 {loading
                   ? 'ກຳລັງບັນທຶກ...'
@@ -348,10 +399,14 @@ export default function Register() {
 
         {step === 3 && role === 'company' && (
           <>
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '0.75rem' }}>
+              <button type="button" className="btn-back" style={{ margin: 0 }} onClick={() => setStep(2)}>
+                <IconArrowLeft size={15} /> ປ່ຽນບົດບາດ
+              </button>
+            </div>
             <h1>ກອກຂໍ້ມູນໂປຣໄຟລ໌</h1>
             <p className="auth-subtitle">ບົດບາດ: ບໍລິສັດ</p>
             <form onSubmit={handleProfileSubmit}>
-              <button type="button" className="btn-back" onClick={() => setStep(2)}>← ປ່ຽນບົດບາດ</button>
               {error && <div className="alert alert-error">{error}</div>}
 
               <div className="form-group">
@@ -386,7 +441,7 @@ export default function Register() {
               </div>
               <div className="form-group">
                 <label>ກ່ຽວກັບບໍລິສັດ</label>
-                <textarea value={companyForm.about} onChange={(e) => setCompanyForm({ ...companyForm, about: e.target.value })} rows={3} placeholder="ບອກເລົ່າກ່ຽວກັບບໍລິສັດຂອງທ່ານ..." />
+                <textarea value={companyForm.about} onChange={(e) => setCompanyForm({ ...companyForm, about: e.target.value })} rows={3} placeholder="" />
               </div>
 
               <button type="submit" className="btn btn-primary btn-full" disabled={loading}>

@@ -52,7 +52,6 @@ export default function CompanyAdCard({
       <div className="company-ad-action">
         <Link to={link} className="company-ad-btn">
           <span>ເບິ່ງຂໍ້ມູນບໍລິສັດ</span>
-          <span className="btn-arrow">&rarr;</span>
         </Link>
       </div>
     </div>

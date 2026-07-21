@@ -30,6 +30,18 @@ export default function InterviewModal({ onClose, onSuccess, preSelectedEmployee
   });
 
   useEffect(() => {
+    if (preSelectedEmployee?.id) {
+      setForm((prev) => ({ ...prev, employeeId: preSelectedEmployee.id }));
+    }
+  }, [preSelectedEmployee]);
+
+  useEffect(() => {
+    if (preSelectedJob?.id) {
+      setForm((prev) => ({ ...prev, jobId: preSelectedJob.id }));
+    }
+  }, [preSelectedJob]);
+
+  useEffect(() => {
     if (!preSelectedJob) {
       api.getJobs()
         .then((data) => {
@@ -93,7 +105,7 @@ export default function InterviewModal({ onClose, onSuccess, preSelectedEmployee
   return (
     <div className="modal-overlay" onClick={onClose} role="presentation">
       <div className="modal-box detail-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px', width: '95%' }}>
-        
+
         {/* Header */}
         <div className="detail-modal-header">
           <h2>ນັດສຳພາດໃໝ່ / ສົ່ງຄຳຊວນ</h2>
@@ -196,8 +208,23 @@ export default function InterviewModal({ onClose, onSuccess, preSelectedEmployee
               )}
             </div>
 
-            {/* Employee Field (if not preselected) */}
-            {!preSelectedEmployee && (
+            {/* Employee Field */}
+            {preSelectedEmployee ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <label style={{ fontSize: '0.875rem', fontWeight: '600', color: '#334155' }}>ຜູ້ຊອກວຽກ (ຜູ້ຮັບຄຳຊວນ)</label>
+                <input
+                  type="text"
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#334155', fontSize: '0.9rem', fontWeight: '500', cursor: 'not-allowed' }}
+                  value={
+                    preSelectedEmployee.name ||
+                    (preSelectedEmployee.profile?.firstName
+                      ? `${preSelectedEmployee.profile.firstName} ${preSelectedEmployee.profile.lastName}`
+                      : (preSelectedEmployee.contact?.email || 'ຜູ້ຊອກວຽກ'))
+                  }
+                  disabled
+                />
+              </div>
+            ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: '600', color: '#334155' }}>ຜູ້ຊອກວຽກ</label>
                 <select
@@ -266,7 +293,7 @@ export default function InterviewModal({ onClose, onSuccess, preSelectedEmployee
               <label style={{ fontSize: '0.875rem', fontWeight: '600', color: '#334155' }}>ໝາຍເຫດ / ເອກະສານທີ່ຕ້ອງກຽມມາ</label>
               <textarea
                 style={{ width: '100%', padding: '0.625rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', fontFamily: 'inherit', fontSize: '0.9rem', resize: 'vertical' }}
-                placeholder="ຕົວຢ່າງ: ກະລຸນານຳ Portfolio ແລະ CV ມາພ້ອມ..."
+                placeholder=""
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 rows={3}

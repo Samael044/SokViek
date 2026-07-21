@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { JOB_TYPES } from '../constants/jobTypes';
 import DetailModal from '../components/DetailModal';
 import ReportModal from '../components/ReportModal';
+import InterviewModal from '../components/InterviewModal';
 import { IconCompany, IconUser, IconPhone, IconMail, IconInbox, IconFlag, IconStar } from '../components/Icons';
 import { openImageInNewTab } from '../utils/image';
 
@@ -29,6 +30,8 @@ export default function Home() {
   const [isSavedState, setIsSavedState] = useState(false);
   const [savedLoading, setSavedLoading] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [inviteCandidate, setInviteCandidate] = useState(null);
 
   const canContact = !user || user.role === 'company' || user.role === 'admin';
 
@@ -36,7 +39,7 @@ export default function Home() {
     async function load() {
       try {
         const data = await api.getFeed();
-        setItems(data.items.slice(0, 8));
+        setItems(data.items);
       } catch {
         setItems([]);
       } finally {
@@ -356,16 +359,23 @@ export default function Home() {
               type="button"
               className="btn btn-primary"
               style={{ flex: 1, padding: '0.75rem', fontSize: '1rem' }}
-              disabled={inviteLoading}
               onClick={() => {
                 if (!user) {
                   navigate('/login');
                   return;
                 }
-                handleSendInvite(item.id);
+                setInviteCandidate({
+                  id: item.id,
+                  name: item.profile?.firstName
+                    ? `${item.profile.firstName} ${item.profile.lastName}`
+                    : (item.contact?.email || 'ຜູ້ຊອກວຽກ'),
+                  profile: item.profile,
+                  resume: item.resume,
+                });
+                setShowInterviewModal(true);
               }}
             >
-              {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ສົ່ງຄຳຊວນ'}
+              ສົ່ງຄຳຊວນ
             </button>
           )}
           <button
@@ -462,7 +472,6 @@ export default function Home() {
                     <div className="tile-action">
                       <div className="tile-btn-premium">
                         <span>{item.type === 'job' ? 'ເບິ່ງຂໍ້ມູນວຽກ' : 'ເບິ່ງລາຍລະອຽດ'}</span>
-                        <span className="btn-arrow">&rarr;</span>
                       </div>
                     </div>
                   </button>
@@ -493,6 +502,21 @@ export default function Home() {
           targetType={reportTarget.type}
           targetId={reportTarget.id}
           onClose={() => setReportTarget(null)}
+        />
+      )}
+
+      {showInterviewModal && (
+        <InterviewModal
+          preSelectedEmployee={inviteCandidate}
+          onClose={() => {
+            setShowInterviewModal(false);
+            setInviteCandidate(null);
+          }}
+          onSuccess={() => {
+            if (inviteCandidate) {
+              setInvitedUserIds((prev) => new Set([...prev, inviteCandidate.id]));
+            }
+          }}
         />
       )}
     </div>

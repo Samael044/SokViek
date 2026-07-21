@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import DetailModal from '../components/DetailModal';
+import InterviewModal from '../components/InterviewModal';
 import { IconUser, IconInbox, IconPhone, IconMail, IconStar } from '../components/Icons';
 import { JOB_TYPES } from '../constants/jobTypes';
 import { formatDateDMY } from '../utils/date';
@@ -18,8 +19,9 @@ export default function SavedCandidates() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [inviteLoading, setInviteLoading] = useState(false);
   const [invitedUserIds, setInvitedUserIds] = useState(new Set());
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [inviteCandidate, setInviteCandidate] = useState(null);
 
   const loadSavedCandidates = async () => {
     setLoading(true);
@@ -55,18 +57,6 @@ export default function SavedCandidates() {
       alert(err.message);
     } finally {
       setActionLoading(false);
-    }
-  };
-
-  const handleSendInvite = async (seekerUserId) => {
-    try {
-      setInviteLoading(true);
-      await api.sendHireInvite(seekerUserId);
-      setInvitedUserIds((prev) => new Set([...prev, seekerUserId]));
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setInviteLoading(false);
     }
   };
 
@@ -110,37 +100,32 @@ export default function SavedCandidates() {
 
       <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', width: '100%' }}>
         {invitedUserIds.has(item.id) ? (
-          <>
-            <button
-              type="button"
-              className="btn btn-outline"
-              style={{ flex: 1, cursor: 'not-allowed', color: 'var(--text-muted)' }}
-              disabled
-            >
-              ສົ່ງຄຳຊວນແລ້ວ
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline"
-              style={{ color: 'var(--error)', borderColor: 'var(--error)' }}
-              onClick={() => setInvitedUserIds((prev) => {
-                const next = new Set(prev);
-                next.delete(item.id);
-                return next;
-              })}
-            >
-              ຍົກເລີກ
-            </button>
-          </>
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ flex: 1, cursor: 'not-allowed', color: 'var(--text-muted)' }}
+            disabled
+          >
+            ສົ່ງຄຳຊວນແລ້ວ
+          </button>
         ) : (
           <button
             type="button"
             className="btn btn-primary"
             style={{ flex: 1 }}
-            disabled={inviteLoading}
-            onClick={() => handleSendInvite(item.id)}
+            onClick={() => {
+              setInviteCandidate({
+                id: item.id,
+                name: item.profile?.firstName
+                  ? `${item.profile.firstName} ${item.profile.lastName}`
+                  : (item.contact?.email || 'ຜູ້ຊອກວຽກ'),
+                profile: item.profile,
+                resume: item.resume
+              });
+              setShowInterviewModal(true);
+            }}
           >
-            {inviteLoading ? 'ກຳລັງສົ່ງ...' : 'ສົ່ງຄຳຊວນ'}
+            ສົ່ງຄຳຊວນ
           </button>
         )}
         <button
@@ -161,7 +146,6 @@ export default function SavedCandidates() {
     <div className="page page-board">
       <div className="container">
 
-        {/* ─── Board Header ─── */}
         <header className="board-header">
           <div>
             <h1>ພະນັກງານທີ່ບັນທຶກ</h1>
@@ -191,14 +175,12 @@ export default function SavedCandidates() {
                     className="grid-tile grid-tile-premium grid-tile-resume"
                     onClick={() => setSelected(c)}
                   >
-                    {/* Banner Area */}
                     <div className="tile-banner">
                       <span className="tile-type-badge-premium tile-type-resume">
                         ພະນັກງານ
                       </span>
                     </div>
 
-                    {/* Overlapping Section */}
                     <div className="tile-overlap">
                       <div className="tile-logo-wrapper">
                         {c.profile?.avatar ? (
@@ -214,7 +196,6 @@ export default function SavedCandidates() {
                       </div>
                     </div>
 
-                    {/* Details Section */}
                     <div className="tile-details">
                       <h3 className="tile-title-premium" title={displayName}>{displayName}</h3>
                       <p className="tile-subtitle-premium" title={c.resume?.desiredPosition}>
@@ -228,7 +209,6 @@ export default function SavedCandidates() {
                       </div>
                     </div>
 
-                    {/* Actions Section */}
                     <div style={{ padding: '0 1.25rem 1.25rem', width: '100%', display: 'flex', gap: '0.5rem' }}>
                       <button
                         type="button"
@@ -266,6 +246,21 @@ export default function SavedCandidates() {
         >
           {renderResumeDetail(selected)}
         </DetailModal>
+      )}
+
+      {showInterviewModal && (
+        <InterviewModal
+          preSelectedEmployee={inviteCandidate}
+          onClose={() => {
+            setShowInterviewModal(false);
+            setInviteCandidate(null);
+          }}
+          onSuccess={() => {
+            if (inviteCandidate) {
+              setInvitedUserIds((prev) => new Set([...prev, inviteCandidate.id]));
+            }
+          }}
+        />
       )}
     </div>
   );

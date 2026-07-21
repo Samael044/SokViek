@@ -216,3 +216,38 @@ export function compressImageFile(file, maxWidth = 480) {
     img.src = url;
   });
 }
+
+export function validatePhone(phone) {
+  const clean = (phone || '').trim();
+  if (!clean) return { valid: false, message: 'ກະລຸນາປ້ອນເບີໂທລະສັບ' };
+  if (!/^\d+$/.test(clean)) {
+    return { valid: false, message: 'ເບີໂທລະສັບຕ້ອງເປັນຕົວເລກເທົ່ານັ້ນ (0-9)' };
+  }
+  if (!/^(020|20)/.test(clean)) {
+    return { valid: false, message: 'ເບີໂທລະສັບຕ້ອງຂຶ້ນຕົ້ນດ້ວຍ 020 ຫຼື 20' };
+  }
+  if (clean.startsWith('020') && clean.length !== 11) {
+    return { valid: false, message: 'ເບີໂທລະສັບ (020) ຕ້ອງມີ 11 ຕົວເລກ (ຕົວຢ່າງ: 02055555555)' };
+  }
+  if (clean.startsWith('20') && clean.length !== 10) {
+    return { valid: false, message: 'ເບີໂທລະສັບ (20) ຕ້ອງມີ 10 ຕົວເລກ (ຕົວຢ່າງ: 2055555555)' };
+  }
+  return { valid: true };
+}
+
+export function validateLoginInput(value) {
+  const val = (value || '').trim();
+  if (!val) return { valid: false, message: 'ກະລຸນາປ້ອນ Gmail ຫຼື ເບີໂທລະສັບ' };
+
+  if (val.includes('@')) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(val)) {
+      return { valid: false, message: 'ຮູບແບບ Gmail ບໍ່ຖືກຕ້ອງ (ຕົວຢ່າງ: example@gmail.com)' };
+    }
+    return { valid: true, isEmail: true };
+  } else {
+    const res = validatePhone(val);
+    if (!res.valid) return res;
+    return { valid: true, isEmail: false };
+  }
+}

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PasswordField from '../components/PasswordField';
+import { validateLoginInput } from '../api/client';
+import logoImg from '../assets/logo.png';
 
 export default function Login() {
   const [login, setLogin] = useState('');
@@ -25,6 +27,13 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const val = validateLoginInput(login);
+    if (!val.valid) {
+      setError(val.message);
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await authLogin(login, password);
@@ -44,7 +53,7 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="auth-brand-mark">S</span>
+          <img src={logoImg} alt="Sokviek Logo" className="auth-brand-img" />
           <span className="auth-brand-name">Sokviek</span>
         </div>
         <h1>ເຂົ້າສູ່ລະບົບ</h1>
@@ -55,7 +64,7 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="login">Gmail</label>
+            <label htmlFor="login">Gmail ຫຼື ເບີໂທລະສັບ</label>
             <input
               id="login"
               type="text"

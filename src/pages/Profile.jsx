@@ -26,7 +26,7 @@ export default function Profile() {
     skills: '',
     experience: '',
     education: '',
-    published: false,
+    published: true,
     resumeImages: [],
   });
   const [message, setMessage] = useState('');
@@ -96,7 +96,7 @@ export default function Profile() {
               skills: data.resume.skills || '',
               experience: data.resume.experience || '',
               education: data.resume.education || '',
-              published: data.resume.published || false,
+              published: data.resume.published !== undefined ? data.resume.published : true,
               resumeImages: data.resume.resumeImages || (data.resume.resumeImage ? [data.resume.resumeImage] : []),
             });
           }
@@ -373,7 +373,9 @@ export default function Profile() {
     setResumeError('');
     setResumeLoading(true);
     try {
-      const data = await api.saveResume(resumeForm);
+      const finalResume = { ...resumeForm, published: true };
+      const data = await api.saveResume(finalResume);
+      setResumeForm(finalResume);
       updateUser(data.user);
       setResumeMessage(data.message);
       setEditingResume(false);
@@ -468,6 +470,10 @@ export default function Profile() {
               <input value={form.phone || ''} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
           </div>
+          <div className="form-group">
+            <label>Gmail / ອີເມວ</label>
+            <input type="email" value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="example@gmail.com" />
+          </div>
           <div className="profile-actions">
             <button type="submit" className="btn btn-primary" disabled={loading}>ບັນທຶກ</button>
             <button type="button" className="btn btn-outline" onClick={() => { setEditing(false); setForm({ ...user.profile }); }}>ຍົກເລີກ</button>
@@ -482,7 +488,7 @@ export default function Profile() {
             <dt>ສະຖານທີ່ຢູ່</dt><dd>{[user.profile?.village, user.profile?.district, user.profile?.province].filter(Boolean).join(', ') || user.profile?.location || '-'}</dd>
             <dt>ສະຖານະ</dt><dd>{maritalLabels[user.profile?.maritalStatus] || '-'}</dd>
             <dt>ເບີໂທ</dt><dd>{user.profile?.phone || '-'}</dd>
-            <dt>ອີເມว/ເບີ</dt><dd>{user.email || user.phone || '-'}</dd>
+            <dt>Email</dt><dd>{user.email || '-'}</dd>
           </dl>
         </div>
       )}
@@ -720,14 +726,6 @@ export default function Profile() {
                     </label>
                   </div>
                 </div>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={resumeForm.published}
-                    onChange={(e) => setResumeForm({ ...resumeForm, published: e.target.checked })}
-                  />
-                  ເຜີຍແຜ່ Resume
-                </label>
                 <div className="profile-actions">
                   <button type="submit" className="btn btn-primary" disabled={resumeLoading}>
                     {resumeLoading ? 'ກຳລັງບັນທຶກ...' : 'ບັນທຶກ Resume'}
@@ -737,7 +735,7 @@ export default function Profile() {
                   </button>
                 </div>
               </form>
-            ) : resumeForm.published ? (
+            ) : resumeForm.desiredPosition ? (
               <dl className="resume-view">
                 <dt>ຕຳແໜ່ງທີ່ຕ້ອງການ</dt><dd>{resumeForm.desiredPosition}</dd>
                 <dt>ປະເພດວຽກ</dt><dd>{resumeForm.jobType ? resumeForm.jobType.split(',').map(t => JOB_TYPES[t.trim()] || t.trim()).join(', ') : '-'}</dd>
@@ -1301,7 +1299,7 @@ export default function Profile() {
                   <input
                     value={interviewForm.interviewerName}
                     onChange={(e) => setInterviewForm({ ...interviewForm, interviewerName: e.target.value })}
-                    placeholder="ຕົວຢ່າງ: ທ່ານ ສົມໄຊ (HR Manager)"
+                    placeholder=""
                   />
                 </div>
                 <div className="form-group">
@@ -1309,7 +1307,7 @@ export default function Profile() {
                   <input
                     value={interviewForm.phone}
                     onChange={(e) => setInterviewForm({ ...interviewForm, phone: e.target.value })}
-                    placeholder="ຕົວຢ່າງ: 020 5555xxxx"
+                    placeholder=""
                   />
                 </div>
               </div>
@@ -1361,7 +1359,7 @@ export default function Profile() {
                   <input
                     value={interviewForm.location}
                     onChange={(e) => setInterviewForm({ ...interviewForm, location: e.target.value })}
-                    placeholder="ຕົວຢ່າງ: ຫ້ອງປະຊຸມ B, ຊັ້ນ 3, ອາຄານ XYZ..."
+                    placeholder=""
                   />
                 </div>
               )}
@@ -1372,7 +1370,7 @@ export default function Profile() {
                   rows={3}
                   value={interviewForm.notes}
                   onChange={(e) => setInterviewForm({ ...interviewForm, notes: e.target.value })}
-                  placeholder="ຕົວຢ່າງ: ກະລຸນານຳ Portfolio ແລະ CV ມາພ້ອມ..."
+                  placeholder=""
                 />
               </div>
 

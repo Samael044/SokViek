@@ -23,22 +23,7 @@ export default function SavedCompanies() {
     setLoading(true);
     try {
       const resJobs = await api.getSavedJobs();
-      if (resJobs.jobs && resJobs.jobs.length > 0) {
-        setSavedJobs(resJobs.jobs);
-      } else {
-        // Fallback to saved companies if any
-        const resCompanies = await api.getSavedCompanies();
-        const fallbackJobs = [];
-        for (const c of resCompanies.companies || []) {
-          try {
-            const jRes = await api.getJobs({ companyId: c.id });
-            if (jRes.jobs && jRes.jobs.length > 0) {
-              fallbackJobs.push({ ...jRes.jobs[0], savedAt: c.savedAt });
-            }
-          } catch (e) { }
-        }
-        setSavedJobs(fallbackJobs);
-      }
+      setSavedJobs(resJobs.jobs || []);
     } catch (err) {
       console.error(err);
       setSavedJobs([]);
@@ -89,11 +74,14 @@ export default function SavedCompanies() {
     }
   };
 
-  const handleUnsaveJob = async (e, jobId) => {
+  const handleUnsaveJob = async (e, jobId, companyId) => {
     e.stopPropagation();
     setActionLoading(true);
     try {
       await api.unsaveJob(jobId);
+      if (companyId) {
+        await api.unsaveCompany(companyId).catch(() => {});
+      }
       setSavedJobs((prev) => prev.filter((j) => j.id !== jobId));
       if (selectedJob && selectedJob.id === jobId) {
         setSelectedJob(null);
@@ -211,7 +199,7 @@ export default function SavedCompanies() {
             className="btn btn-outline"
             style={{ padding: '0.75rem 1.25rem', fontSize: '1rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', color: 'var(--error)', borderColor: 'var(--error)' }}
             disabled={actionLoading}
-            onClick={(e) => handleUnsaveJob(e, job.id)}
+            onClick={(e) => handleUnsaveJob(e, job.id, job.companyId || job.company?.id)}
           >
             {actionLoading ? '...' : 'ລົບການບັນທຶກ'}
           </button>
@@ -304,7 +292,7 @@ export default function SavedCompanies() {
                         className="btn btn-sm"
                         style={{ background: 'var(--error)', color: 'white', padding: '0 0.75rem' }}
                         disabled={actionLoading}
-                        onClick={(e) => handleUnsaveJob(e, job.id)}
+                        onClick={(e) => handleUnsaveJob(e, job.id, job.companyId || job.company?.id)}
                       >
                         ເອົາອອກ
                       </button>
